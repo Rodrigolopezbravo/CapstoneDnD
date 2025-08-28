@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template, redirect, url_for, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
@@ -31,6 +31,14 @@ def create_app():
     app.register_blueprint(partidas_bp, url_prefix="/api/partidas")
     app.register_blueprint(encuentros_bp, url_prefix="/api/encuentros")
     app.register_blueprint(chat_bp, url_prefix="/api/chat")
+
+    @app.route('/login')
+    def login_page():
+        return render_template('login.html')
+
+    @app.route('/register')
+    def register_page():
+        return render_template('register.html')
 
     # crear tablas si no existen
     with app.app_context():

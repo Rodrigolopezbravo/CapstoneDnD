@@ -1,35 +1,58 @@
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import create_access_token
+
 from dnd_app import db
-from flask import Blueprint
 from dnd_app.models import Usuario
 from dnd_app.utils import hash_password, check_password
-from flask_jwt_extended import create_access_token
 
 auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
+    # Obtiene los datos del JSON
     data = request.get_json()
     username = data.get("username")
-    password = data.get("password")
     email = data.get("email")
-    if not username or not password:
-        return jsonify({"error":"faltan campos"}), 400
+    password = data.get("password")
+
+    if not username or not password or not email:
+        return jsonify({"error": "Faltan campos obligatorios"}), 400
+
     if Usuario.query.filter_by(username=username).first():
-        return jsonify({"error":"usuario ya existe"}), 400
+        return jsonify({"error": "El nombre de usuario ya existe"}), 409
+    
+    if Usuario.query.filter_by(email=email).first():
+        return jsonify({"error": "Este email ya está registrado"}), 409
+
+    # Crea un nuevo usuario y hashea la contraseña
     user = Usuario(username=username, email=email, password_hash=hash_password(password))
     db.session.add(user)
     db.session.commit()
-    return jsonify({"message":"usuario creado"}), 201
+    
+    return jsonify({"message": "Usuario creado con éxito"}), 201
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
+    # Obtiene los datos del JSON
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
+
     if not username or not password:
-        return jsonify({"error":"faltan credenciales"}), 400
+        return jsonify({"error": "Faltan credenciales"}), 400
+
+    # Busca al usuario en la base de datos
     user = Usuario.query.filter_by(username=username).first()
+
+    # Verifica si el usuario existe y si la contraseña es correcta
     if not user or not check_password(user.password_hash, password):
-        return jsonify({"error":"credenciales inválidas"}), 401
+        return jsonify({"error": "Credenciales inválidas"}), 401
+
+    # Crea el token de acceso JWT
     access_token = create_access_token(identity=user.id)
-    return jsonify({"token": access_token, "user_id": user.id, "username": user.username})
+    
+    return jsonify({
+        "access_token": access_token,
+        "user_id": user.id,
+        "username": user.username
+    }), 200

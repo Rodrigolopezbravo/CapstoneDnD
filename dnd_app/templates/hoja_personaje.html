@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Personaje</title>
+    <link rel="stylesheet" href="dnd_app/static/css/hp.css">
+</head>
+<body>
+    <div class="char-sheet-container">
+        <h1>Crear Nuevo Personaje</h1>
+        <form id="crear-personaje-form">
+            <div class="form-group">
+                <label for="nombre">Nombre del Personaje</label>
+                <input type="text" id="nombre" name="nombre" placeholder="Ej: Sir Valiant" required>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stats-box">
+                    <label for="fuerza">Fuerza</label>
+                    <input type="number" id="fuerza" name="fuerza" value="10">
+                </div>
+                <div class="stats-box">
+                    <label for="destreza">Destreza</label>
+                    <input type="number" id="destreza" name="destreza" value="10">
+                </div>
+                <div class="stats-box">
+                    <label for="constitucion">Constitución</label>
+                    <input type="number" id="constitucion" name="constitucion" value="10">
+                </div>
+                <div class="stats-box">
+                    <label for="inteligencia">Inteligencia</label>
+                    <input type="number" id="inteligencia" name="inteligencia" value="10">
+                </div>
+                <div class="stats-box">
+                    <label for="sabiduria">Sabiduría</label>
+                    <input type="number" id="sabiduria" name="sabiduria" value="10">
+                </div>
+                <div class="stats-box">
+                    <label for="carisma">Carisma</label>
+                    <input type="number" id="carisma" name="carisma" value="10">
+                </div>
+                <div class="stats-box">
+                    <label for="agilidad">Agilidad</label>
+                    <input type="number" id="agilidad" name="agilidad" value="10">
+                </div>
+            </div>
+
+            <button type="submit">Crear Personaje</button>
+            <p id="message"></p>
+        </form>
+    </div>
+    <script src="{{ url_for('static', filename='js/personajes.js') }}"></script>
+</body>
+</html>

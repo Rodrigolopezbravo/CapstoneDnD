@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <style>
-        /* Estilos generales */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: #f4f7f6;
@@ -17,7 +16,6 @@
             color: #333;
         }
 
-        /* Contenedor principal del formulario */
         .login-container {
             background-color: #fff;
             padding: 2.5rem;
@@ -28,13 +26,11 @@
             text-align: center;
         }
 
-        /* Encabezado */
         h2 {
             margin-top: 0;
             color: #555;
         }
 
-        /* Estilo de los campos del formulario */
         form {
             display: flex;
             flex-direction: column;
@@ -60,7 +56,6 @@
             border-color: #007bff;
         }
 
-        /* Estilo de los botones */
         button {
             padding: 0.75rem;
             border: none;
@@ -72,7 +67,6 @@
             margin-top: 0.5rem;
         }
 
-        /* Botón de login */
         #login-button {
             background-color: #007bff;
             color: #fff;
@@ -83,13 +77,11 @@
             transform: translateY(-2px);
         }
 
-        /* Mensaje de estado (éxito/error) */
         #message {
             margin-top: 1rem;
             font-weight: 600;
         }
 
-        /* Botón de registro */
         .register-btn {
             background-color: #e2e6ea;
             color: #333;
@@ -120,39 +112,38 @@
         <p>¿No tienes cuenta?</p>
         <button class="register-btn" onclick="window.location.href='/register'">Registrarse</button>
     </div>
+
     <script>
-        document.getElementById('login-form').addEventListener('submit', async (event) => {
-            event.preventDefault();
+    document.getElementById('login-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
 
-            const form = event.target;
-            const data = {
-                username: form.username.value,
-                password: form.password.value
-            };
+        const form = event.target;
+        const data = {
+            username: form.username.value,
+            password: form.password.value
+        };
 
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-            const messageDiv = document.getElementById('message');
-
-            if (response.ok) {
-                localStorage.setItem('access_token', result.access_token);
-                messageDiv.textContent = 'Login exitoso. Redirigiendo...';
-                messageDiv.style.color = 'green';
-                setTimeout(() => {
-                    window.location.href = '/index';
-                }, 1500);
-            } else {
-                messageDiv.textContent = 'Error: ' + result.error;
-                messageDiv.style.color = 'red';
-            }
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            credentials: 'include'  // Muy importante para enviar cookies
         });
+
+        const result = await response.json();
+        const messageDiv = document.getElementById('message');
+
+        if (response.ok) {
+            messageDiv.textContent = result.message;
+            messageDiv.style.color = 'green';
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1500);
+        } else {
+            messageDiv.textContent = 'Error: ' + result.error;
+            messageDiv.style.color = 'red';
+        }
+    });
     </script>
 </body>
 </html>

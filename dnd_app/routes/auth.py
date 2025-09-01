@@ -1,6 +1,6 @@
 # dnd_app/routes/auth.py
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token
+from flask import Blueprint, request, jsonify, make_response
+from flask_jwt_extended import create_access_token, set_access_cookies, unset_jwt_cookies
 from dnd_app import db
 from dnd_app.models import Usuario
 from dnd_app.utils import hash_password, check_password
@@ -58,6 +58,8 @@ def register():
     
     return jsonify({"message": "Usuario creado con éxito"}), 201
 
+from flask_jwt_extended import set_access_cookies
+
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -72,10 +74,14 @@ def login():
     if not user or not check_password(user.password_hash, password):
         return jsonify({"error": "Credenciales inválidas"}), 401
 
-    access_token = create_access_token(identity=user.id)
-    
-    return jsonify({
-        "access_token": access_token,
-        "user_id": user.id,
-        "username": user.username
-    }), 200
+    access_token = create_access_token(identity=str(user.id))
+    response = jsonify({"message": "Login exitoso"})
+    set_access_cookies(response, access_token)  # coloca el token en la cookie
+    return response, 200
+
+@auth_bp.route("/logout", methods=["POST"])
+def logout():
+    resp = make_response({"msg": "Logout exitoso"})
+    # Borrar la cookie
+    resp.delete_cookie("access_token_cookie")
+    return resp

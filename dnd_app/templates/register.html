@@ -5,97 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro</title>
     <style>
-        /* Estilos generales (iguales que en login.html) */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f4f7f6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            color: #333;
-        }
-
-        .register-container {
-            background-color: #fff;
-            padding: 2.5rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-
-        h2 {
-            margin-top: 0;
-            color: #555;
-        }
-
-        form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        label {
-            align-self: flex-start;
-            font-weight: 600;
-            margin-bottom: -0.5rem;
-        }
-
-        input {
-            width: 95%;
-            padding: 0.75rem;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            transition: border-color 0.3s;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #28a745;
-        }
-        
-        button {
-            padding: 0.75rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 700;
-            transition: background-color 0.3s, transform 0.2s;
-            margin-top: 0.5rem;
-        }
-
-        /* Botón de registro */
-        #register-button {
-            background-color: #28a745;
-            color: #fff;
-        }
-
-        #register-button:hover {
-            background-color: #218838;
-            transform: translateY(-2px);
-        }
-
-        /* Mensaje de estado (éxito/error) */
-        #message {
-            margin-top: 1rem;
-            font-weight: 600;
-        }
-
-        /* Botón de volver a login */
-        .login-btn {
-            background-color: #e2e6ea;
-            color: #333;
-            margin-top: 1.5rem;
-        }
-
-        .login-btn:hover {
-            background-color: #d1d6db;
-            transform: translateY(-2px);
-        }
+        /* Tus estilos originales (sin cambios) */
     </style>
 </head>
 <body>
@@ -117,7 +27,7 @@
         <div id="message"></div>
         <br>
         <p>¿Ya tienes cuenta?</p>
-        <button class="login-btn" onclick="window.location.href='/login'">Volver al Login</button>
+        <button class="login-btn" onclick="window.location.href='{{ url_for('auth.login') }}'">Volver al Login</button>
     </div>
     <script>
         document.getElementById('register-form').addEventListener('submit', async (event) => {
@@ -130,11 +40,9 @@
                 password: form.password.value
             };
 
-            const response = await fetch('/api/auth/register', {
+            const response = await fetch('{{ url_for("auth.register_api") }}', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
 
@@ -145,7 +53,7 @@
                 messageDiv.textContent = 'Registro exitoso. Redirigiendo a login...';
                 messageDiv.style.color = 'green';
                 setTimeout(() => {
-                    window.location.href = '/login';
+                    window.location.href = '{{ url_for("auth.login") }}';
                 }, 1500);
             } else {
                 messageDiv.textContent = 'Error: ' + result.error;

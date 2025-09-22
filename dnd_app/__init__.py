@@ -1,6 +1,4 @@
-# dnd_app/__init__.py
-
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect, url_for, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
@@ -12,7 +10,8 @@ jwt = JWTManager()
 def create_app():
     app = Flask(__name__)
 
-    # Configuración de la app
+    # Config - cámbiala para producción
+    # Configuración de la base y JWT
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URI", "sqlite:///dnd_app.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "modifica_esta_clave")
@@ -22,28 +21,25 @@ def create_app():
     app.config["JWT_COOKIE_CSRF_PROTECT"] = True
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
 
-    # Inicializa extensiones
     db.init_app(app)
     jwt.init_app(app)
 
-    # Importa y registra blueprints
+    # importar rutas y registrarlas
     from .routes.auth import auth_bp
     from .routes.personajes import personajes_bp
     from .routes.partidas import partidas_bp
     from .routes.encuentros import encuentros_bp
     from .routes.chat import chat_bp
 
+    # Context processor para inyectar usuario en plantillas
+    from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+    from .models import Usuario
+
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(personajes_bp, url_prefix="/api/personajes")
     app.register_blueprint(partidas_bp, url_prefix="/api/partidas")
     app.register_blueprint(encuentros_bp, url_prefix="/api/encuentros")
     app.register_blueprint(chat_bp, url_prefix="/api/chat")
-
-    # Rutas de páginas
-    @app.route('/')
-    @app.route('/index')
-    def home():
-        return render_template('index.html')
 
     @app.route('/login')
     def login_page():
@@ -52,11 +48,16 @@ def create_app():
     @app.route('/register')
     def register_page():
         return render_template('register.html')
-
-    # Context processor para inyectar usuario en templates
-    from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
-    from .models import Usuario
-
+    
+    # Ruta principal
+    @app.route('/')
+    def home():
+        return render_template('index.html')
+    
+    @app.route('/index')
+    def index():
+        return render_template('index.html')
+    
     @app.context_processor
     def inject_user():
         try:
@@ -67,7 +68,7 @@ def create_app():
             user = None
         return dict(current_user=user)
 
-    # Crear tablas automáticamente si no existen
+    # crear tablas si no existen
     with app.app_context():
         from . import models
         db.create_all()

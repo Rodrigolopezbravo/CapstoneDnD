@@ -58,6 +58,10 @@ def create_app():
     def index():
         return render_template('index.html')
     
+    @app.route('/personajes')
+    def personajes_page():
+        return render_template('personaje.html')
+    
     @app.context_processor
     def inject_user():
         try:

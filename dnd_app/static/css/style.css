@@ -1,11 +1,10 @@
 :root {
-  --color-primary: #8b0000;   /* Rojo sangre */
-  --color-secondary: #c0a060; /* Dorado viejo */
-  --color-accent: #1b1b1b;    /* Fondo oscuro */
-  --color-dark: #4b3832;      /* Marrón cuero */
-  --color-light: #f4f1de;     /* Pergamino */
+  --color-primary: #8b0000;      /* Rojo sangre */
+  --color-secondary: #c0a060;    /* Dorado viejo */
+  --color-accent: #1b1b1b;       /* Fondo oscuro */
+  --color-dark: #4b3832;         /* Marrón cuero */
+  --color-light: #f4f1de;        /* Pergamino */
 }
-
 
 body {
   width: 100vw;
@@ -18,6 +17,7 @@ body {
   transform-style: preserve-3d;
   overflow-x: hidden;
   overflow-y: scroll;
+  font-family: sans-serif;
 }
 
 html {
@@ -30,7 +30,7 @@ header {
   left: 0;
   width: 100%;
   height: 80px;
-  background-color: rgba(139, 0, 0, 1); /* fondo sólido al inicio */
+  background-color: rgba(139, 0, 0, 1);
   color: var(--color-light);
   display: flex;
   align-items: center;
@@ -39,11 +39,77 @@ header {
   transition: background-color 0.5s ease;
 }
 
-/* Clase para cuando el fondo desaparezca */
+/* Clase para cuando el fondo del header desaparece al hacer scroll */
 header.scrolled {
-  background-color: rgba(0,0,0,0); /* completamente transparente */
+  background-color: rgba(0,0,0,0);
 }
 
+/* Estilos para el contenedor de la tabla */
+.character-table {
+  width: 100%;
+  margin-top: 20px;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Estilos para el contenedor de texto de la sección 1 */
+.content1 .content-text {
+  width: 100%;
+  max-width: 900px;
+  text-align: center;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/* Estilos para las celdas de la tabla */
+.character-table .table th,
+.character-table .table td {
+  border: none;
+  vertical-align: middle;
+  text-align: center;
+  color: #444;
+  padding: 12px 8px;
+  font-size: 14px;
+}
+
+/* Estilos para el encabezado de la tabla */
+.character-table .table thead th {
+  font-weight: bold;
+  color: #333;
+  border-bottom: 2px solid #ddd;
+  white-space: nowrap;
+}
+
+/* Estilos para las filas del cuerpo de la tabla */
+.character-table .table tbody tr {
+  background-color: #f9f9f9;
+}
+
+.character-table .table tbody tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+/* Estilos para el botón "Crear Partida" */
+#crear_p {
+  background-color: var(--color-secondary) !important;
+  color: var(--color-accent) !important;
+  border: none !important;
+  padding: 10px 20px !important;
+  border-radius: 5px !important;
+  width: 140px;
+  height: 60px;
+  text-align: center;
+  font-size: 20px;
+}
+
+#crear_p:hover {
+  background-color: var(--color-dark) !important;
+  color: var(--color-light) !important;
+}
+
+/* Estilos para todos los botones de la tabla */
 .btn {
   background-color: var(--color-secondary) !important;
   color: var(--color-accent) !important;
@@ -53,7 +119,6 @@ header.scrolled {
   width: 140px;
   height: 40px;
   text-align: center;
-  
 }
 
 .btn:hover {
@@ -62,8 +127,6 @@ header.scrolled {
 }
 
 /* Parallax */
-
-
 .section1, .section2 {
   width: 100%;
   min-height: 100vh;
@@ -83,16 +146,10 @@ header.scrolled {
   justify-content: center;
   align-items: center;
   color: white;
-  filter: blur(0px); /* inicio sin blur */
+  filter: blur(0px);
   transition: filter 0.1s linear;
 }
 
-body {
-  margin: 0;
-  font-family: sans-serif;
-}
-
-/* Estilo base de los content */
 .content {
   position: relative;
   width: 100%;
@@ -102,24 +159,22 @@ body {
   align-items: center;
   color: white;
   text-align: center;
-  overflow: visible; /* importante para mostrar los zigzags */
+  overflow: visible;
 }
 
-/* Sección 1 */
 .content1 {
   background: #8b0000;
 }
 
-/* Zigzag superior del primer content (dirección opuesta) */
 .content1::before {
   content: "";
   position: absolute;
-  top: -100px; /* sobresale hacia arriba */
+  top: -100px;
   left: 0;
   width: 100%;
   height: 100px;
-  background: #8b0000; /* mismo color del content1 */
-  clip-path: polygon(0 0, 100% 100%, 0 100%); /* dirección opuesta */
+  background: #8b0000;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
   z-index: 1;
 }
 
@@ -130,15 +185,15 @@ body {
   left: 0;
   width: 100%;
   height: 100px;
-  background: #c0a060; /* color de la siguiente sección */
+  background: #c0a060;
   clip-path: polygon(0 100%, 100% 0, 100% 100%);
   z-index: 1;
 }
 
-/* Sección 2 */
 .content2 {
   background: #c0a060;
 }
+
 .content2::after {
   content: "";
   position: absolute;
@@ -146,17 +201,14 @@ body {
   left: 0;
   width: 100%;
   height: 100px;
-  background: #4b3832; /* color de la siguiente sección */
+  background: #4b3832;
   clip-path: polygon(0 0, 100% 100%, 0 100%);
   z-index: 1;
 }
 
-/* Sección 3 */
 .content3 {
   background: #4b3832;
 }
-
-
 
 .text {
   top: 30%;

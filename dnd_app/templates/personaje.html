@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crea tu personaje</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/personaje.css') }}">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    {% include 'partials/header.html' %}
+
+    <main class="container">
+        <form class="form-container">
+            <h2 class="form-title">Crea tu personaje</h2>
+            
+            <section class="section-container">
+                <div class="input-group">
+                    <label for="nombre">Nombre</label>
+                    <input type="text" id="nombre" name="nombre" placeholder="Escribe aquí el nombre" required>
+                </div>
+                <div class="input-group">
+                    <label for="clase">Clase</label>
+                    <select id="clase" name="clase">
+                        <option value="">Selecciona una clase</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="raza">Raza</label>
+                    <select id="raza" name="raza">
+                        <option value="">Selecciona una raza</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="section-container">
+                <div class="input-group full-width">
+                    <label for="trasfondo">Trasfondo</label>
+                    <select id="trasfondo" name="trasfondo">
+                        <option value="">Selecciona un trasfondo</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="section-container">
+                <div class="input-group">
+                    <label for="armadura">Armadura</label>
+                    <select id="armadura" name="armadura">
+                        <option value="">Selecciona una armadura</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="arma">Arma</label>
+                    <select id="arma" name="arma">
+                        <option value="">Selecciona un arma</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="escudo">Escudo</label>
+                    <select id="escudo" name="escudo">
+                        <option value="">Selecciona un escudo</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="section-container">
+                <div class="input-group">
+                    <label for="arma-distancia">Arma a distancia</label>
+                    <select id="arma-distancia" name="arma-distancia">
+                        <option value="">Selecciona un arma</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="equipo-adicional">Equipo adicional</label>
+                    <select id="equipo-adicional" name="equipo-adicional">
+                        <option value="">Selecciona un equipo</option>
+                    </select>
+                </div>
+            </section>
+            
+            <h2 class="form-title">Atributos</h2>
+
+            <section class="section-container">
+                <div class="input-group">
+                    <label for="fuerza">Fuerza</label>
+                    <input type="number" id="fuerza" name="fuerza" value="10" min="1" max="30">
+                </div>
+                <div class="input-group">
+                    <label for="destreza">Destreza</label>
+                    <input type="number" id="destreza" name="destreza" value="10" min="1" max="30">
+                </div>
+                <div class="input-group">
+                    <label for="constitucion">Constitución</label>
+                    <input type="number" id="constitucion" name="constitucion" value="10" min="1" max="30">
+                </div>
+                <div class="input-group">
+                    <label for="inteligencia">Inteligencia</label>
+                    <input type="number" id="inteligencia" name="inteligencia" value="10" min="1" max="30">
+                </div>
+                <div class="input-group">
+                    <label for="sabiduria">Sabiduría</label>
+                    <input type="number" id="sabiduria" name="sabiduria" value="10" min="1" max="30">
+                </div>
+                <div class="input-group">
+                    <label for="carisma">Carisma</label>
+                    <input type="number" id="carisma" name="carisma" value="10" min="1" max="30">
+                </div>
+                <div class="input-group">
+                    <label for="agilidad">Agilidad</label>
+                    <input type="number" id="agilidad" name="agilidad" value="10" min="1" max="30">
+                </div>
+            </section>
+
+            <button type="submit" class="submit-button">Crear Personaje</button>
+        </form>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.querySelector('form');
+            const submitButton = document.querySelector('.submit-button');
+            
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                submitButton.disabled = true;
+                submitButton.textContent = 'Creando...';
+
+               
+                const data = {
+                    nombre: document.getElementById('nombre').value,
+                    clase: document.getElementById('clase').value,
+                    raza: document.getElementById('raza').value,
+                    trasfondo: document.getElementById('trasfondo').value,
+                    armadura: document.getElementById('armadura').value,
+                    arma: document.getElementById('arma').value,
+                    escudo: document.getElementById('escudo').value,
+                    "arma-distancia": document.getElementById('arma-distancia').value,
+                    "equipo-adicional": document.getElementById('equipo-adicional').value,
+                    fuerza: parseInt(document.getElementById('fuerza').value),
+                    destreza: parseInt(document.getElementById('destreza').value),
+                    constitucion: parseInt(document.getElementById('constitucion').value),
+                    inteligencia: parseInt(document.getElementById('inteligencia').value),
+                    sabiduria: parseInt(document.getElementById('sabiduria').value),
+                    carisma: parseInt(document.getElementById('carisma').value),
+                    agilidad: parseInt(document.getElementById('agilidad').value)
+                };
+                
+               
+                try {
+                    const response = await fetch('/api/personajes/create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data),
+                    });
+
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        alert('Personaje creado con éxito: ' + result.message);
+                        form.reset();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + error.error);
+                    }
+                } catch (error) {
+                    console.error('Error de conexión:', error);
+                    alert('Hubo un problema de conexión al crear el personaje.');
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Crear Personaje';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

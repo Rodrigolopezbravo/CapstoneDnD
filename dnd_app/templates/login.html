@@ -127,7 +127,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
-            credentials: 'include'  // Muy importante para enviar cookies
+            credentials: 'include' 
         });
 
         const result = await response.json();
@@ -137,7 +137,7 @@
             messageDiv.textContent = result.message;
             messageDiv.style.color = 'green';
             setTimeout(() => {
-                window.location.href = '/index.html';
+                window.location.href = '/index';
             }, 1500);
         } else {
             messageDiv.textContent = 'Error: ' + result.error;

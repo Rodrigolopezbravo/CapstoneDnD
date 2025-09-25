@@ -31,6 +31,7 @@ def create_app():
     from .routes.encuentros import encuentros_bp
     from .routes.chat import chat_bp
 
+
     # Context processor para inyectar usuario en plantillas
     from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
     from .models import Usuario
@@ -44,6 +45,10 @@ def create_app():
     @app.route('/login')
     def login_page():
         return render_template('login.html')
+    
+    @app.route('/partida')
+    def partida_page():
+        return render_template('partida.html')
 
     @app.route('/register')
     def register_page():

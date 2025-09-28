@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, verify_jwt_in_request, get_jwt_identity
 from datetime import timedelta
 from dnd_app.oracle_db import get_connection_pool
+import oracledb
 import os
 
 db = SQLAlchemy()
@@ -71,15 +72,13 @@ def create_app():
             verify_jwt_in_request(optional=True, locations=["cookies"])
             user_id = get_jwt_identity()
             if user_id:
-                # Consultar usuario en Oracle
                 with pool.acquire() as conn:
                     with conn.cursor() as cursor:
-                        cursor.execute("""
-                            SELECT id_usuario, username, email
-                            FROM Usuario
-                            WHERE id_usuario = :1
-                        """, (user_id,))
-                        row = cursor.fetchone()
+                        out_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
+                        
+                        cursor.callproc("pkg_auth.obtener_usuario_por_id", [int(user_id), out_cursor])
+                        
+                        row = out_cursor.getvalue().fetchone()
                         if row:
                             user = {
                                 "id_usuario": row[0],
@@ -88,7 +87,9 @@ def create_app():
                             }
         except Exception:
             user = None
+
         return dict(current_user=user)
+
 
     # Crear tablas SQLite si no existen
     with app.app_context():

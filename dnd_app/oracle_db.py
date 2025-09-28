@@ -1,15 +1,9 @@
 import oracledb
 import os
+from dnd_app.walletcredentials import INSTANT_CLIENT_DIR, DB_USER, DB_PASSWORD, SERVICE_NAME
 
 os.environ["TNS_ADMIN"] = r"C:\instantclient_23_9\network\admin"
 
-# ==============================================================================
-# 1. CONFIGURACIÓN DE RUTAS Y CREDENCIALES
-# ==============================================================================
-INSTANT_CLIENT_DIR = r"C:\instantclient_23_9"  # Ajustado a tu ruta real
-DB_USER = "ADMIN"
-DB_PASSWORD = "DnD2025!Enc0unters#"
-SERVICE_NAME = "dndcapstonedb_high"
 
 oracledb.init_oracle_client(lib_dir=INSTANT_CLIENT_DIR)
 
@@ -22,7 +16,6 @@ def get_connection_pool():
             password=DB_PASSWORD,
             dsn=SERVICE_NAME
         )
-        print("✅ Pool de conexiones creado con éxito.")
         return pool
     except oracledb.Error as e:
         error, = e.args

@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify, make_response
 from flask_jwt_extended import create_access_token, set_access_cookies, unset_jwt_cookies
 from dnd_app.utils import hash_password, check_password
+import oracledb
 import re
 
 # Importar la función de pool de Oracle
@@ -34,9 +35,9 @@ def is_valid_email(email):
     email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(email_regex, email)
 
-# =====================================================================
-# Endpoints
-# =====================================================================
+# =========================================================
+# Registro de usuario
+# =========================================================
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
@@ -44,6 +45,7 @@ def register():
     email = data.get("email")
     password = data.get("password")
 
+    # Validaciones iniciales
     if not username or not password or not email:
         return jsonify({"error": "Faltan campos obligatorios"}), 400
 
@@ -54,31 +56,30 @@ def register():
     if password_error:
         return jsonify({"error": password_error}), 400
 
-    # =================================================================
-    # Verificar si el usuario o email ya existen en Oracle
-    # =================================================================
-    with pool.acquire() as conn:
-        with conn.cursor() as cursor:
-            # Buscar username
-            cursor.execute("SELECT COUNT(*) FROM Usuario WHERE username = :1", (username,))
-            if cursor.fetchone()[0] > 0:
-                return jsonify({"error": "El nombre de usuario ya existe"}), 409
+    # Hashear la contraseña en Python
+    hashed_password = hash_password(password)
 
-            # Buscar email
-            cursor.execute("SELECT COUNT(*) FROM Usuario WHERE email = :1", (email,))
-            if cursor.fetchone()[0] > 0:
-                return jsonify({"error": "Este email ya está registrado"}), 409
-
-            # Insertar nuevo usuario
-            cursor.execute("""
-                INSERT INTO Usuario (username, email, password_hash)
-                VALUES (:1, :2, :3)
-            """, (username, email, hash_password(password)))
+    try:
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                # Llamar procedimiento almacenado en Oracle
+                cursor.callproc(
+                    "pkg_auth.registrar_usuario",
+                    [username, email, hashed_password]
+                )
             conn.commit()
+    except oracledb.IntegrityError:
+        # Manejo de duplicados desde constraint unique
+        return jsonify({"error": "El usuario o email ya existe"}), 409
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
     return jsonify({"message": "Usuario creado con éxito"}), 201
 
 
+# =========================================================
+# Login de usuario
+# =========================================================
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -88,17 +89,14 @@ def login():
     if not username or not password:
         return jsonify({"error": "Faltan credenciales"}), 400
 
-    # =================================================================
-    # Consultar usuario en Oracle
-    # =================================================================
-    with pool.acquire() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                SELECT id_usuario, password_hash
-                FROM Usuario
-                WHERE username = :1
-            """, (username,))
-            row = cursor.fetchone()
+    try:
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                out_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
+                cursor.callproc("pkg_auth.obtener_usuario", [username, out_cursor])
+                row = out_cursor.getvalue().fetchone()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
     if not row or not check_password(row[1], password):
         return jsonify({"error": "Credenciales inválidas"}), 401
@@ -108,6 +106,9 @@ def login():
     response = jsonify({"message": "Login exitoso"})
     set_access_cookies(response, access_token)
     return response, 200
+
+
+
 
 
 @auth_bp.route("/logout", methods=["POST"])

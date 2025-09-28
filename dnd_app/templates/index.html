@@ -5,25 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Proyecto</title>
 
-    <!-- Link a Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <!-- Favicon (opcional) -->
-    <!-- <link rel="icon" href="favicon.ico" type="image/x-icon"> -->
-    <!-- Link a CSS externo -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div>
-        <!-- Header -->
         {% include 'partials/header.html' %}
 
-        <!-- Parallax-->
         <div class="section1">
-            <div class="text">COMBAT TRACKER</div>
+            <h1 class="text">COMBAT TRACKER</h1>
         </div>
 
         <div class="content content1">
-            <div class="text">CONTENIDO</div>
+            <div class="content-text">
+                <h2>Tus personajes</h2>
+                
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Nivel</th>
+                                <th>Fuerza</th>
+                                <th>Destreza</th>
+                                <th>Constitución</th>
+                                <th>Inteligencia</th>
+                                <th>Sabiduría</th>
+                                <th>Carisma</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Pepe</td>
+                                <td>1</td>
+                                <td>1</td>
+                                <td>1</td>
+                                <td>1</td>
+                                <td>1</td>
+                                <td>1</td>
+                                <td>1</td>
+                                <td>Activo</td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <button onclick="window.location.href='/partida'" class="btn btn-sm btn-primary mb-1">Crear</button>
+                                        <button class="btn btn-sm btn-warning mb-1">Unirse</button>
+                                        <button class="btn btn-sm btn-danger">Eliminar</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <div class="content content2">
@@ -36,17 +71,16 @@
 
     </div>
 
-    <!-- Script JS externo -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script></script>
     <script>
         const header = document.querySelector('header');
 
         window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
-            header.classList.add('scrolled'); // fondo transparente al bajar
-        } else {
-            header.classList.remove('scrolled'); // fondo sólido al subir
-        }
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
         });
     </script>
 </body>

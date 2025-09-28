@@ -44,6 +44,10 @@ def create_app():
     @app.route('/login')
     def login_page():
         return render_template('login.html')
+    
+    @app.route('/partida')
+    def partida_page():
+        return render_template('partida.html')
 
     @app.route('/register')
     def register_page():
@@ -55,6 +59,10 @@ def create_app():
         return render_template('index.html')
 
     # Context processor para inyectar usuario logeado en templates
+    @app.route('/personajes')
+    def personajes_page():
+        return render_template('personaje.html')
+    
     @app.context_processor
     def inject_user():
         user = None

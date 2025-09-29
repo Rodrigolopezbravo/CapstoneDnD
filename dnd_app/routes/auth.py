@@ -113,7 +113,6 @@ def login():
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
-    resp = make_response({"msg": "Logout exitoso"})
-    # Borrar la cookie
-    resp.delete_cookie("access_token_cookie")
-    return resp
+    resp = jsonify({"msg": "Logout exitoso"})
+    unset_jwt_cookies(resp)
+    return resp, 200

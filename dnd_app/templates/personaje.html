@@ -39,82 +39,33 @@
                     </select>
                 </div>
             </section>
-
-            <section class="section-container">
-                <div class="input-group full-width">
-                    <label for="trasfondo">Trasfondo</label>
-                    <select id="trasfondo" name="trasfondo">
-                        <option value="">Selecciona un trasfondo</option>
-                    </select>
-                </div>
-            </section>
-
-            <section class="section-container">
-                <div class="input-group">
-                    <label for="armadura">Armadura</label>
-                    <select id="armadura" name="armadura">
-                        <option value="">Selecciona una armadura</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="arma">Arma</label>
-                    <select id="arma" name="arma">
-                        <option value="">Selecciona un arma</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="escudo">Escudo</label>
-                    <select id="escudo" name="escudo">
-                        <option value="">Selecciona un escudo</option>
-                    </select>
-                </div>
-            </section>
-
-            <section class="section-container">
-                <div class="input-group">
-                    <label for="arma-distancia">Arma a distancia</label>
-                    <select id="arma-distancia" name="arma-distancia">
-                        <option value="">Selecciona un arma</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="equipo-adicional">Equipo adicional</label>
-                    <select id="equipo-adicional" name="equipo-adicional">
-                        <option value="">Selecciona un equipo</option>
-                    </select>
-                </div>
-            </section>
             
             <h2 class="form-title">Atributos</h2>
 
             <section class="section-container">
                 <div class="input-group">
                     <label for="fuerza">Fuerza</label>
-                    <input type="number" id="fuerza" name="fuerza" value="10" min="1" max="30">
+                    <input type="number" id="fuerza" name="fuerza" value="8" min="8" max="17">
                 </div>
                 <div class="input-group">
                     <label for="destreza">Destreza</label>
-                    <input type="number" id="destreza" name="destreza" value="10" min="1" max="30">
+                    <input type="number" id="destreza" name="destreza" value="8" min="8" max="17">
                 </div>
                 <div class="input-group">
                     <label for="constitucion">Constitución</label>
-                    <input type="number" id="constitucion" name="constitucion" value="10" min="1" max="30">
+                    <input type="number" id="constitucion" name="constitucion" value="8" min="8" max="17">
                 </div>
                 <div class="input-group">
                     <label for="inteligencia">Inteligencia</label>
-                    <input type="number" id="inteligencia" name="inteligencia" value="10" min="1" max="30">
+                    <input type="number" id="inteligencia" name="inteligencia" value="8" min="8" max="17">
                 </div>
                 <div class="input-group">
                     <label for="sabiduria">Sabiduría</label>
-                    <input type="number" id="sabiduria" name="sabiduria" value="10" min="1" max="30">
+                    <input type="number" id="sabiduria" name="sabiduria" value="8" min="8" max="17">
                 </div>
                 <div class="input-group">
                     <label for="carisma">Carisma</label>
-                    <input type="number" id="carisma" name="carisma" value="10" min="1" max="30">
-                </div>
-                <div class="input-group">
-                    <label for="agilidad">Agilidad</label>
-                    <input type="number" id="agilidad" name="agilidad" value="10" min="1" max="30">
+                    <input type="number" id="carisma" name="carisma" value="8" min="8" max="17">
                 </div>
             </section>
 
@@ -125,64 +76,198 @@
     <script></script>
     
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.querySelector('form');
-            const submitButton = document.querySelector('.submit-button');
-            
-            form.addEventListener('submit', async (event) => {
-                event.preventDefault();
+    async function cargarOpciones() {
+        try {
+            const claseSelect = document.getElementById('clase');
+            const respClases = await fetch('/api/personajes/clases');
+            if (respClases.ok) {
+                const clases = await respClases.json();
+                clases.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.id;
+                    option.textContent = c.nombre;
+                    claseSelect.appendChild(option);
+                });
+            } else {
+                console.error('Error al cargar clases');
+            }
+            const razaSelect = document.getElementById('raza');
+            const respRazas = await fetch('/api/personajes/razas');
+            if (respRazas.ok) {
+                const razas = await respRazas.json();
+                razas.forEach(r => {
+                    const option = document.createElement('option');
+                    option.value = r.id;
+                    option.textContent = r.nombre;
+                    razaSelect.appendChild(option);
+                });
+            } else {
+                console.error('Error al cargar razas');
+            }
 
-                submitButton.disabled = true;
-                submitButton.textContent = 'Creando...';
+        } catch (error) {
+            console.error('Error al conectar con el servidor:', error);
+        }
+    }
 
-               
-                const data = {
-                    nombre: document.getElementById('nombre').value,
-                    clase: document.getElementById('clase').value,
-                    raza: document.getElementById('raza').value,
-                    trasfondo: document.getElementById('trasfondo').value,
-                    armadura: document.getElementById('armadura').value,
-                    arma: document.getElementById('arma').value,
-                    escudo: document.getElementById('escudo').value,
-                    "arma-distancia": document.getElementById('arma-distancia').value,
-                    "equipo-adicional": document.getElementById('equipo-adicional').value,
-                    fuerza: parseInt(document.getElementById('fuerza').value),
-                    destreza: parseInt(document.getElementById('destreza').value),
-                    constitucion: parseInt(document.getElementById('constitucion').value),
-                    inteligencia: parseInt(document.getElementById('inteligencia').value),
-                    sabiduria: parseInt(document.getElementById('sabiduria').value),
-                    carisma: parseInt(document.getElementById('carisma').value),
-                    agilidad: parseInt(document.getElementById('agilidad').value)
-                };
-                
-               
-                try {
-                    const response = await fetch('/api/personajes/create', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data),
-                    });
+    document.addEventListener('DOMContentLoaded', cargarOpciones);
 
-                    
-                    if (response.ok) {
-                        const result = await response.json();
-                        alert('Personaje creado con éxito: ' + result.message);
-                        form.reset();
-                    } else {
-                        const error = await response.json();
-                        alert('Error: ' + error.error);
-                    }
-                } catch (error) {
-                    console.error('Error de conexión:', error);
-                    alert('Hubo un problema de conexión al crear el personaje.');
-                } finally {
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'Crear Personaje';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.querySelector('form');
+        const submitButton = document.querySelector('.submit-button');
+        const claseSelect = document.getElementById('clase');
+        const equipoContainer = document.createElement('div');
+        equipoContainer.classList.add('section-container');
+        claseSelect.parentElement.parentElement.insertAdjacentElement('afterend', equipoContainer);
+
+        const totalPuntos = 27;
+        const stats = ["fuerza","destreza","constitucion","inteligencia","sabiduria","carisma"];
+        const costos = {8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9,16:12,17:15};
+
+        let puntosRestantes = totalPuntos;
+
+        function calcularPuntos() {
+            let gasto = 0;
+            stats.forEach(stat => {
+                const val = parseInt(document.getElementById(stat).value);
+                if (val > 17) {
+                    document.getElementById(stat).value = 17;
+                } else if (val < 8) {
+                    document.getElementById(stat).value = 8;
                 }
+                gasto += (val - 8);
             });
+            puntosRestantes = totalPuntos - gasto;
+            let marcador = document.getElementById('puntos-restantes');
+            if (!marcador) {
+                marcador = document.createElement('p');
+                marcador.id = 'puntos-restantes';
+                marcador.style.textAlign = 'center';
+                marcador.style.fontWeight = 'bold';
+                marcador.style.color = 'white';
+                marcador.style.marginTop = '1rem';
+                marcador.style.marginBottom = '0.5rem';
+                const boton = form.querySelector('.submit-button');
+                form.insertBefore(marcador, boton);
+            }
+
+
+            marcador.textContent = `Puntos restantes: ${puntosRestantes}`;
+            marcador.style.color = puntosRestantes < 0 ? '#ff4d4d' : 'white';
+        }
+
+        stats.forEach(stat => {
+            document.getElementById(stat).addEventListener('input', calcularPuntos);
         });
+        calcularPuntos();
+
+        const opcionesClase = {
+            "Guerrero": [
+                {label: "Arma principal", options: ["Alabarda", "Atarraga", "Cimitarra", "Espada corta", "Espada larga", "Espadón", "Estoque", "Hacha de batalla"]},
+                {label: "Arma secundaria o escudo", options: ["Alabarda", "Atarraga", "Cimitarra", "Espada corta", "Espada larga", "Espadón", "Estoque", "Hacha de batalla", "Escudo"]},
+                {label: "Armadura", options: ["Cota de mallas", "Cuero"]}
+            ],
+            "Clérigo": [
+                {label: "Arma principal", options: ["Maza", "Martillo de guerra"]},
+                {label: "Armadura", options: ["Cota de escamas", "Cota de mallas", "Cuero"]},
+                {label: "Arma secundaria", options: ["Bastón", "Daga", "Gran clava", "Hacha de mano", "Hoz", "Jabalina", "Lanza", "Martillo ligero", "Maza", "Clava", "Arco corto", "Ballesta ligera", "Dardo", "Honda"]}
+            ],
+            "Mago": [
+                {label: "Arma principal", options: ["Daga", "Bastón"]},
+                {label: "Armadura", options: ["Cuero"]}
+            ],
+            "Pícaro": [
+                {label: "Arma principal", options: ["Estoque", "Espada corta"]},
+                {label: "Arma secundaria", options: ["Arco corto", "Ballesta ligera", "Espada corta"]},
+                {label: "Armadura", options: ["Armadura de cuero", "Armadura acolchada"]}
+            ]
+        };
+
+        claseSelect.addEventListener('change', () => {
+            const claseNombre = claseSelect.options[claseSelect.selectedIndex].text;
+            equipoContainer.innerHTML = '';
+            if (claseNombre && opcionesClase[claseNombre]) {
+                equipoContainer.classList.add('equipo-inicial');
+                equipoContainer.innerHTML = `<h2 class="form-title">Equipo inicial de ${claseNombre}</h2>`;
+                opcionesClase[claseNombre].forEach((grupo, idx) => {
+                    const div = document.createElement('div');
+                    div.classList.add('input-group');
+                    const label = document.createElement('label');
+                    label.textContent = grupo.label;
+                    const select = document.createElement('select');
+                    select.classList.add('form-select');
+                    select.id = `equipo-${idx}`;
+                    grupo.options.forEach(op => {
+                        const option = document.createElement('option');
+                        option.value = op;
+                        option.textContent = op;
+                        select.appendChild(option);
+                    });
+                    div.appendChild(label);
+                    div.appendChild(select);
+                    equipoContainer.appendChild(div);
+                });
+            }
+        });
+
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (puntosRestantes < 0) {
+                alert('Has gastado más puntos de los disponibles.');
+                return;
+            }
+
+            submitButton.disabled = true;
+            submitButton.textContent = 'Creando...';
+
+            const equipo = [];
+            equipoContainer.querySelectorAll('select').forEach(s => equipo.push(s.value));
+
+            const data = {
+                nombre: document.getElementById('nombre').value,
+                clase: document.getElementById('clase').value,
+                raza: document.getElementById('raza').value,
+                equipo: equipo,
+                fuerza: parseInt(document.getElementById('fuerza').value),
+                destreza: parseInt(document.getElementById('destreza').value),
+                constitucion: parseInt(document.getElementById('constitucion').value),
+                inteligencia: parseInt(document.getElementById('inteligencia').value),
+                sabiduria: parseInt(document.getElementById('sabiduria').value),
+                carisma: parseInt(document.getElementById('carisma').value)
+            };
+
+            try {
+                const response = await fetch('/api/personajes/create', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json',
+                        'Authorization': 'Bearer' + localStorage.getItem('token')
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('Personaje creado con éxito: ' + result.message);
+                    form.reset();
+                    equipoContainer.innerHTML = '';
+                    puntosRestantes = totalPuntos;
+                    calcularPuntos();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error de conexión:', error);
+                alert('Hubo un problema de conexión al crear el personaje.');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Crear Personaje';
+            }
+        });
+    });
     </script>
 </body>
 </html>

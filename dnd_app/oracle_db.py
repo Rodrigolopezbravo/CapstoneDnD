@@ -2,7 +2,7 @@ import oracledb
 import os
 from dnd_app.walletcredentials import INSTANT_CLIENT_DIR, DB_USER, DB_PASSWORD, SERVICE_NAME
 
-os.environ["TNS_ADMIN"] = r"C:\instantclient_23_9\network\admin"
+os.environ["TNS_ADMIN"] = r"D:\descargas\oracle\instantclient_23_9\network\admin"
 
 
 oracledb.init_oracle_client(lib_dir=INSTANT_CLIENT_DIR)

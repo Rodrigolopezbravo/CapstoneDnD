@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Personajes</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'partials/header.html' %}
+    
+    <div class="container my-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Mis Personajes</h1>
+            <a href="{{ url_for('personajes_page') }}" class="btn btn-primary">
+                + Crear Nuevo Personaje
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Nivel</th>
+                        <th>Fuerza</th>
+                        <th>Destreza</th>
+                        <th>Constitución</th>
+                        <th>Inteligencia</th>
+                        <th>Sabiduría</th>
+                        <th>Carisma</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-personajes-body">
+                    <tr>
+                        <td colspan="10" class="text-center p-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Cargando personajes...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tbody = document.getElementById('tabla-personajes-body');
+
+            fetch('/api/personajes/my')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No se pudo obtener la lista de personajes. ¿Has iniciado sesión?');
+                    }
+                    return response.json();
+                })
+                .then(personajes => {
+                    tbody.innerHTML = ''; 
+
+                    if (personajes.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="10" class="text-center p-4">No tienes personajes. ¡Crea uno para comenzar!</td></tr>`;
+                        return;
+                    }
+
+                    personajes.forEach(personaje => {
+                        
+                        const filaHTML = `
+                            <tr>
+                                <td><strong>${personaje.NOMBRE || 'N/A'}</strong></td>
+                                <td>${personaje.NIVEL || 'N/A'}</td>
+                                <td>${personaje.FUERZA || 'N/A'}</td>
+                                <td>${personaje.DESTREZA || 'N/A'}</td>
+                                <td>${personaje.CONSTITUCION || 'N/A'}</td>
+                                <td>${personaje.INTELIGENCIA || 'N/A'}</td>
+                                <td>${personaje.SABIDURIA || 'N/A'}</td>
+                                <td>${personaje.CARISMA || 'N/A'}</td>
+                                <td>
+                                    <span class="badge bg-success">${personaje.ESTADO || 'Activo'}</span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="#" class="btn btn-sm btn-info">Ver</a>
+                                    <button class="btn btn-sm btn-danger">Eliminar</button>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += filaHTML;
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al cargar personajes:', error);
+                    tbody.innerHTML = `<tr><td colspan="10" class="text-center p-4 text-danger"><strong>Error:</strong> ${error.message}</td></tr>`;
+                });
+        });
+    </script>
+</body>
+</html>

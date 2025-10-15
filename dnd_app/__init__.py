@@ -64,6 +64,11 @@ def create_app():
     def personajes_page():
         return render_template('personaje.html')
     
+    # Context processor para inyectar usuario logeado en templates
+    @app.route('/listar_personajes')
+    def listar_personajes_page():
+        return render_template('listar_personajes.html')
+    
     @app.context_processor
     def inject_user():
         user = None

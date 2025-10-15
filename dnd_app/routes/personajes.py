@@ -13,7 +13,6 @@ def crear_personaje():
     data = request.get_json()
 
     try:
-        # Convertir lista de equipo en string separado por comas
         equipos_iniciales = ",".join(data.get("equipo", []))
 
         with pool.acquire() as conn:
@@ -42,9 +41,6 @@ def crear_personaje():
     return jsonify({"message": "Personaje creado con éxito"}), 201
 
 
-
-# Listar personajes de un usuario
-
 @personajes_bp.route("/my", methods=["GET"])
 @jwt_required()
 def my_personajes():
@@ -55,20 +51,23 @@ def my_personajes():
         with pool.acquire() as conn:
             with conn.cursor() as cursor:
                 out_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
-                cursor.callproc("pkg_personaje.listar_personajes", [user_id, out_cursor])
-                for row in out_cursor.getvalue():
-                    personajes.append({
-                        "Nombre": row[0],
-                        "Nivel": row[1],
-                        "Fuerza": row[2],
-                        "Destreza": row[3],
-                        "Constitucion": row[4],
-                        "Inteligencia": row[5],
-                        "Sabiduria": row[6],
-                        "Carisma": row[7],
-                        "Activo": row[8]
-                    })
+                
+                
+                cursor.callproc("pkg_personaje.traer_personajes_por_usuario", [user_id, out_cursor])
+                
+                result_cursor = out_cursor.getvalue()
+                
+               
+                columnas = [col[0] for col in result_cursor.description]
+
+                
+                for row in result_cursor:
+                    
+                    personaje_dict = dict(zip(columnas, row))
+                    personajes.append(personaje_dict)
+                    
     except Exception as e:
+        print(f"Error al listar personajes: {e}")
         return jsonify({"error": str(e)}), 500
 
     return jsonify(personajes), 200

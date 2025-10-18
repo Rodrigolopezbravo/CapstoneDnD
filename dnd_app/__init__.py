@@ -59,15 +59,21 @@ def create_app():
     def index():
         return render_template('index.html')
 
-    # Context processor para inyectar usuario logeado en templates
+    
     @app.route('/personajes')
     def personajes_page():
         return render_template('personaje.html')
     
-    # Context processor para inyectar usuario logeado en templates
+    
     @app.route('/listar_personajes')
     def listar_personajes_page():
         return render_template('listar_personajes.html')
+    
+    # ... (junto a las otras rutas de páginas)
+
+    @app.route('/personajes/detalle/<int:id_personaje>')
+    def detalle_personaje_page(id_personaje):
+        return render_template('detalle_personaje.html', id_personaje=id_personaje)
     
     @app.context_processor
     def inject_user():

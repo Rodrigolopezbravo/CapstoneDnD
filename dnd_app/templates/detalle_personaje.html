@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Personaje</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'partials/header.html' %}
+
+    <div class="container my-5">
+        
+        <div id="detalle-container" class="d-none">
+            <h1 id="nombre-personaje" class="mb-4"></h1>
+            
+            <div class="row g-4">
+                <div class="col-md-7">
+                    <div class="card">
+                        <div class="card-header"><h3 class="mb-0">Atributos</h3></div>
+                        <ul class="list-group list-group-flush" id="lista-atributos">
+                            </ul>
+                    </div>
+                </div>
+                
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-header"><h3 class="mb-0">Equipamiento</h3></div>
+                        <ul class="list-group list-group-flush" id="lista-inventario">
+                            </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <a href="{{ url_for('listar_personajes_page') }}" class="btn btn-secondary mt-4">&laquo; Volver</a>
+        </div>
+        
+        <div id="cargando-container" class="text-center p-5">
+             <div class="spinner-border" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+        <div id="error-container" class="alert alert-danger d-none"></div>
+
+    </div>
+
+    <script>
+        // 1. Obtenemos el ID del personaje que Flask nos pasó
+        const idPersonaje = {{ id_personaje }};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const nombreEl = document.getElementById('nombre-personaje');
+            const atributosEl = document.getElementById('lista-atributos');
+            const inventarioEl = document.getElementById('lista-inventario');
+            
+            const detalleCont = document.getElementById('detalle-container');
+            const cargandoCont = document.getElementById('cargando-container');
+            const errorCont = document.getElementById('error-container');
+
+            // 2. Llamamos a nuestra API
+            fetch(`/api/personajes/${idPersonaje}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Personaje no encontrado o no te pertenece.');
+                    return response.json();
+                })
+                .then(data => {
+                    // 3. Ahora 'data' tiene dos claves: 'detalle' e 'inventario'
+                    const detalle = data.detalle;
+                    const inventario = data.inventario;
+
+                    // 4. Llenamos los detalles del personaje
+                    nombreEl.textContent = `${detalle.NOMBRE} - Nivel ${detalle.NIVEL}`;
+                    
+                    atributosEl.innerHTML = `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Fuerza <span>${detalle.FUERZA}</span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Destreza <span>${detalle.DESTREZA}</span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Constitución <span>${detalle.CONSTITUCION || 'N/A'}</span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Inteligencia <span>${detalle.INTELIGENCIA}</span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Sabiduría <span>${detalle.SABIDURIA}</span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Carisma <span>${detalle.CARISMA}</span></li>
+                    `;
+
+                    // 5. Llenamos la lista de inventario
+                    inventarioEl.innerHTML = ''; // Limpiamos la lista
+                    
+                    // Si el inventario está vacío O el primer item es 'null'
+                    if (inventario.length === 0 || (inventario.length > 0 && inventario[0].NOMBRE === null)) {
+                        inventarioEl.innerHTML = '<li class="list-group-item">Inventario vacío</li>';
+                    } else {
+                        // Recorremos la lista de items
+                        inventario.forEach(item => {
+                            const fila = `
+                                <li class="list-group-item">${item.NOMBRE} (x${item.CANTIDAD || 1})</li>
+                            `;
+                            inventarioEl.innerHTML += fila;
+                        });
+                    }
+                    
+                    // 6. Mostramos el contenido y ocultamos el "cargando"
+                    detalleCont.classList.remove('d-none');
+                    cargandoCont.classList.add('d-none');
+                })
+                .catch(error => {
+                    // 7. Mostramos error si algo falla
+                    cargandoCont.classList.add('d-none'); 
+                    errorCont.classList.remove('d-none'); 
+                    errorCont.textContent = `Error: ${error.message}`;
+                });
+        });
+    </script>
+</body>
+</html>

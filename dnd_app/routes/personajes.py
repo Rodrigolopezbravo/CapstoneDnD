@@ -109,3 +109,60 @@ def obtener_razas():
         return jsonify({"error": str(e)}), 500
 
     return jsonify(razas), 200
+
+# =====================================================================
+# Traer detalles de UN personaje específico (¡NUEVA FUNCIÓN!)
+# =====================================================================
+@personajes_bp.route("/<int:id_personaje>", methods=["GET"])
+@jwt_required()
+def get_detalle_personaje(id_personaje):
+    user_id = get_jwt_identity()
+    
+    try:
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                detalle_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
+                cursor.callproc(
+                    "pkg_personaje.traer_detalle_personaje",
+                    [user_id, id_personaje, detalle_cursor]
+                )
+
+                result_cursor = detalle_cursor.getvalue()
+                columnas = [col[0] for col in result_cursor.description]
+                
+                personaje_detalle = {}
+                personaje_inventario = []
+                primera_fila = True
+
+                # Recorremos TODAS las filas que devuelve el cursor
+                for row in result_cursor:
+                    fila_dict = dict(zip(columnas, row))
+
+                    # La primera fila la usamos para sacar los detalles del personaje
+                    if primera_fila:
+                        personaje_detalle = fila_dict.copy() # Copiamos los datos
+                        primera_fila = False
+                    
+                    # De cada fila (incluida la primera), extraemos el item
+                    if fila_dict.get("NOMBRE_EQUIPO"):
+                        personaje_inventario.append({
+                            "NOMBRE": fila_dict.get("NOMBRE_EQUIPO"),
+                            "CANTIDAD": fila_dict.get("CANTIDAD")
+                        })
+
+                if not personaje_detalle:
+                    return jsonify({"error": "Personaje no encontrado o no te pertenece"}), 404
+                
+                # Limpiamos los datos del item del objeto 'detalle'
+                personaje_detalle.pop("NOMBRE_EQUIPO", None)
+                personaje_detalle.pop("CANTIDAD", None)
+
+                # Devolvemos todo en un solo JSON estructurado
+                return jsonify({
+                    "detalle": personaje_detalle,
+                    "inventario": personaje_inventario
+                }), 200
+
+    except Exception as e:
+        print(f"Error al traer detalle de personaje: {e}")
+        return jsonify({"error": str(e)}), 500

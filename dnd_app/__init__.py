@@ -53,6 +53,11 @@ def create_app():
     @app.route('/register')
     def register_page():
         return render_template('register.html')
+    
+    @app.route('/partida/<int:id_partida>')
+    def redirigir_partida(id_partida):
+        return redirect(f"/api/partidas/partida/{id_partida}")
+
 
     @app.route('/')
     @app.route('/index')
@@ -69,7 +74,6 @@ def create_app():
     def listar_personajes_page():
         return render_template('listar_personajes.html')
     
-    # ... (junto a las otras rutas de páginas)
 
     @app.route('/personajes/detalle/<int:id_personaje>')
     def detalle_personaje_page(id_personaje):

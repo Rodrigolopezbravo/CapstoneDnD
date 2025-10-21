@@ -31,11 +31,6 @@ def crear_encuentro(partida_id):
 @encuentros_bp.route("/<int:partida_id>/resolve", methods=["POST"])
 @jwt_required()
 def resolver_encuentro(partida_id):
-    """
-    Resuelve un encuentro con acciones provistas por el cliente:
-    se espera body: {"acciones": [{"personaje_id":.., "accion":"atacar"/"huir"/"dialogar"/"esperar", "target_id":.., "tipo":"melee/ranged/magico"} , ...]}
-    Las acciones se procesan en orden secuencial para la primera versión.
-    """
     user_id = get_jwt_identity()
     data = request.get_json()
     acciones = data.get("acciones", [])

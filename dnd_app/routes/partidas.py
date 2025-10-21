@@ -1,34 +1,108 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from dnd_app import db
-from dnd_app.models import Partida, Personaje, GameEvent
+from flask import Blueprint, render_template, jsonify, request
+from flask_jwt_extended import jwt_required
+import oracledb
+from dnd_app.oracle_db import get_connection_pool
 
 partidas_bp = Blueprint("partidas", __name__)
+pool = get_connection_pool()
+
 
 @partidas_bp.route("/create", methods=["POST"])
 @jwt_required()
 def crear_partida():
     data = request.get_json()
-    nombre = data.get("nombre")
-    descripcion = data.get("descripcion", "")
-    if not nombre:
-        return jsonify({"error":"nombre requerido"}), 400
-    p = Partida(nombre=nombre, descripcion=descripcion)
-    db.session.add(p)
-    db.session.commit()
-    return jsonify({"message":"Partida creada","id":p.id}), 201
+    personaje_id = data.get("id_personaje")
+    nombre = data.get("nombre_partida", "")
 
-@partidas_bp.route("/<int:pid>", methods=["GET"])
+    if not personaje_id or not nombre:
+        return jsonify({"error": "Faltan datos"}), 400
+
+    try:
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                cursor.callproc("pkg_partida.crear_partida", [nombre, personaje_id])
+            conn.commit()
+        return jsonify({"message": "Partida creada correctamente"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@partidas_bp.route("/join", methods=["POST"])
 @jwt_required()
-def detalle_partida(pid):
-    user_id = get_jwt_identity()
-    partida = Partida.query.get_or_404(pid)
-    # verificar si el usuario tiene o tuvo un personaje en la partida
-    acceso = Personaje.query.filter_by(usuario_id=user_id, partida_id=pid).first()
-    if not acceso:
-        return jsonify({"error":"no tienes acceso a esta partida"}), 403
-    personajes = Personaje.query.filter_by(partida_id=pid).all()
-    out = []
-    for p in personajes:
-        out.append({"id":p.id,"nombre":p.nombre,"nivel":p.nivel,"estado":p.estado})
-    return jsonify({"id":partida.id,"nombre":partida.nombre,"personajes":out})
+def unirse_partida():
+    data = request.get_json()
+    codigo = data.get("codigo")
+    personaje_id = data.get("id_personaje")
+
+    try:
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                cursor.callproc("pkg_partida.unir_a_partida", [codigo, personaje_id])
+            conn.commit()
+        return jsonify({"message": "Personaje unido a la partida"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@partidas_bp.route("/ir/<int:id_personaje>", methods=["GET"])
+@jwt_required()
+def ir_a_partida(id_personaje):
+    try:
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                out_id = cursor.var(oracledb.NUMBER)
+                cursor.callproc("pkg_partida.obtener_partida_por_personaje", [id_personaje, out_id])
+
+                partida = out_id.getvalue()
+                if partida:
+                    return jsonify({"status": "en_partida", "id_partida": int(partida)}), 200
+                else:
+                    return jsonify({"status": "sin_partida"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@partidas_bp.route("/partida/<int:id_partida>")
+@jwt_required()
+def ver_partida(id_partida):
+    try:
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                out_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
+                cursor.callproc("pkg_partida.traer_partida_por_id", [id_partida, out_cursor])
+
+                row = out_cursor.getvalue().fetchone()
+                if not row:
+                    return "La partida no existe", 404
+
+                partida = {
+                    "id": row[0],
+                    "nombre": row[1],
+                    "estado": row[2],
+                    "fecha_inicio": row[3],
+                    "codigo": row[5]
+                }
+
+        return render_template("partida.html", partida=partida)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@partidas_bp.route("/jugadores/<int:id_partida>")
+@jwt_required()
+def traer_jugadores(id_partida):
+    try:
+        jugadores = []
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                out_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
+                cursor.callproc("pkg_partida.traer_jugadores_partida", [id_partida, out_cursor])
+
+                for row in out_cursor.getvalue():
+                    jugadores.append({
+                        "usuario": row[0],
+                        "personaje": row[1],
+                        "clase": row[2]           
+                    })
+
+        return jsonify(jugadores), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

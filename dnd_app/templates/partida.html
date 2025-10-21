@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Partida D&D</title>
+    <title>Partida D&D - {{ partida.nombre }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
         body {
             background-color: #222;
@@ -51,11 +52,38 @@
             background-color: #666;
             transform: translateY(-2px);
         }
+        .codigo-box {
+            background: #333;
+            color: #fff;
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .copy-btn {
+            border: none;
+            background: #555;
+            color: #fff;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .copy-btn:hover {
+            background: #777;
+        }
     </style>
 </head>
 <body class="container-fluid py-2">
 
-    <h4 class="text-center mb-3">⚔️ Partida Activa</h4>
+    <div class="text-center mb-3">
+        <h4>⚔️ Partida: {{ partida.nombre }}</h4>
+        <div class="codigo-box mt-2">
+            Código: <strong id="codigoPartida">{{ partida.codigo }}</strong>
+            <button class="copy-btn" onclick="copiarCodigo()">Copiar</button>
+        </div>
+    </div>
 
     <!-- pestaña para celulares -->
     <ul class="nav nav-tabs d-md-none" id="partidaTabs" role="tablist">
@@ -72,9 +100,8 @@
         <div class="col-md-2 d-flex flex-column">
             <div class="panel p-2 flex-grow-1">
                 <h6 class="panel-title">Jugadores</h6>
-                <ul class="list-group list-group-flush small">
-                    <li class="list-group-item py-1">Jugador 1 - Guerrero</li>
-                    <li class="list-group-item py-1">Jugador 2 - Clérigo</li>
+                <ul id="lista-jugadores" class="list-group list-group-flush small">
+                    <li class="list-group-item text-center">Cargando...</li>
                 </ul>
             </div>
         </div>
@@ -84,14 +111,13 @@
             <div class="panel p-2 mb-2 flex-grow-1">
                 <h6 class="panel-title">Tablero</h6>
                 <div style="height:350px; background:#ddd; border-radius:6px; display:flex; justify-content:center; align-items:center;">
-                    <span style="color:#555;">[ aqui agregaremos el tablero ]</span>
+                    <span style="color:#555;">[ aquí agregaremos el tablero ]</span>
                 </div>
             </div>
             <div class="panel p-2" style="max-height:180px; overflow-y:auto;">
                 <h6 class="panel-title">Eventos</h6>
                 <div class="event-log small">
-                    <p><b>Jugador 1</b> atacó al Goblin (15 de daño)</p>
-                    <p><b>Jugador 2</b> lanzó Curar Heridas (+10 PV)</p>
+                    <p class="text-muted">[ En desarrollo ]</p>
                 </div>
             </div>
         </div>
@@ -101,7 +127,7 @@
             <div class="panel p-2 mb-2 flex-grow-1">
                 <h6 class="panel-title">Chat</h6>
                 <div class="chat-box small flex-grow-1">
-                    <p><b>Jugador 1:</b> ¡JAJAJAJAJ PIFIA!</p>
+                    <p class="text-muted">[ Próximamente ]</p>
                 </div>
                 <div class="input-group mt-2 input-group-sm">
                     <input type="text" class="form-control" placeholder="Mensaje...">
@@ -128,49 +154,56 @@
         <div class="tab-pane fade show active panel" id="tab-board">
             <h6 class="panel-title">Tablero</h6>
             <div style="height:250px; background:#ddd; border-radius:6px; display:flex; justify-content:center; align-items:center;">
-                <span style="color:#555;">[ aqui agregaremos el tablero ]</span>
+                <span style="color:#555;">[ aquí agregaremos el tablero ]</span>
             </div>
         </div>
 
         <div class="tab-pane fade panel" id="tab-players">
             <h6 class="panel-title">Jugadores</h6>
-                <ul class="list-group small">
-                    <li class="list-group-item py-1">Jugador 1 - Guerrero</li>
-                    <li class="list-group-item py-1">Jugador 2 - Clérigo</li>
-                </ul>
-        </div>
-
-        <div class="tab-pane fade panel" id="tab-events">
-            <h6 class="panel-title">Eventos</h6>
-            <div class="event-log small">
-                <p><b>Jugador 1</b> atacó al Goblin (15 de daño)</p>
-            </div>
-        </div>
-
-        <div class="tab-pane fade panel" id="tab-chat">
-            <h6 class="panel-title">Chat</h6>
-            <div class="chat-box small">
-                <p><b>Jugador 2:</b> ¡Lanzo conjuro!</p>
-            </div>
-            <div class="input-group mt-2 input-group-sm">
-                <input type="text" class="form-control" placeholder="Mensaje...">
-                <button class="btn btn-primary">➤</button>
-            </div>
-        </div>
-
-        <div class="tab-pane fade panel" id="tab-actions">
-            <h6 class="panel-title">Acciones</h6>
-            <div class="d-grid gap-1">
-                <button class="action-button">Atacar</button>
-                <button class="action-button">Huir</button>
-                <button class="action-button">Habilidad</button>
-                <button class="action-button">Objeto</button>
-                <button class="action-button">Dialogar</button>
-                <button class="action-button">Inventario</button>
-            </div>
+            <ul id="lista-jugadores-movil" class="list-group small">
+                <li class="list-group-item text-center">Cargando...</li>
+            </ul>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const ID_PARTIDA = {{ partida.id }};
+        document.addEventListener('DOMContentLoaded', cargarJugadores);
+
+        async function cargarJugadores() {
+            try {
+                const resp = await fetch(`/api/partidas/jugadores/${ID_PARTIDA}`);
+                const jugadores = await resp.json();
+
+                const ulPc = document.getElementById("lista-jugadores");
+                const ulMovil = document.getElementById("lista-jugadores-movil");
+                ulPc.innerHTML = "";
+                ulMovil.innerHTML = "";
+
+                if (jugadores.length === 0) {
+                    ulPc.innerHTML = `<li class="list-group-item text-center text-muted">No hay jugadores aún</li>`;
+                    ulMovil.innerHTML = ulPc.innerHTML;
+                    return;
+                }
+
+                jugadores.forEach(j => {
+                    const li = `<li class="list-group-item py-1">${j.personaje} (${j.clase})</li>`;
+                    ulPc.innerHTML += li;
+                    ulMovil.innerHTML += li;
+                });
+            } catch (err) {
+                console.error("Error al cargar jugadores:", err);
+            }
+        }
+
+        function copiarCodigo() {
+            const codigo = document.getElementById("codigoPartida").textContent;
+            navigator.clipboard.writeText(codigo);
+            alert("Código copiado: " + codigo);
+        }
+    </script>
+
 </body>
 </html>

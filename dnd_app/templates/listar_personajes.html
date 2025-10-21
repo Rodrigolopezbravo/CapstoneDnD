@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,23 +9,24 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
     {% include 'partials/header.html' %}
-    
+
     <div class="container my-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>Mis Personajes</h1>
-            
+
             <div>
                 <a href="{{ url_for('index') }}" class="btn btn-secondary me-2">
                     inicio
                 </a>
-                
+
                 <a href="{{ url_for('personajes_page') }}" class="btn btn-primary">
                     + Crear
                 </a>
             </div>
-            
+
         </div>
 
         <div class="table-responsive">
@@ -68,7 +70,7 @@
                     return response.json();
                 })
                 .then(personajes => {
-                    tbody.innerHTML = ''; 
+                    tbody.innerHTML = '';
 
                     if (personajes.length === 0) {
                         tbody.innerHTML = `<tr><td colspan="10" class="text-center p-4">No tienes personajes. ¡Crea uno para comenzar!</td></tr>`;
@@ -76,10 +78,8 @@
                     }
 
                     personajes.forEach(personaje => {
-                        
-                        
                         const id = personaje.ID_PERSONAJE || personaje.ID;
-                        
+
                         const filaHTML = `
                             <tr>
                                 <td><strong>${personaje.NOMBRE || 'N/A'}</strong></td>
@@ -90,11 +90,10 @@
                                 <td>${personaje.INTELIGENCIA || 'N/A'}</td>
                                 <td>${personaje.SABIDURIA || 'N/A'}</td>
                                 <td>${personaje.CARISMA || 'N/A'}</td>
-                                <td>
-                                    <span class="badge bg-success">${personaje.ESTADO || 'Activo'}</span>
-                                </td>
+                                <td><span class="badge bg-success">${personaje.ESTADO || 'Activo'}</span></td>
                                 <td class="text-center">
                                     <a href="/personajes/detalle/${id}" class="btn btn-sm btn-info">Ver</a>
+                                    <button class="btn btn-sm btn-warning" onclick="irAPartida(${id}, '${personaje.NOMBRE}')">Partida</button>
                                     <button class="btn btn-sm btn-danger">Eliminar</button>
                                 </td>
                             </tr>
@@ -107,6 +106,67 @@
                     tbody.innerHTML = `<tr><td colspan="10" class="text-center p-4 text-danger"><strong>Error:</strong> ${error.message}</td></tr>`;
                 });
         });
+
+        async function irAPartida(idPersonaje, nombrePersonaje) {
+            try {
+                const resp = await fetch(`/api/partidas/ir/${idPersonaje}`);
+
+                if (!resp.headers.get("content-type")?.includes("application/json")) {
+                    alert("Debes iniciar sesión para continuar.");
+                    window.location.href = "/login";
+                    return;
+                }
+
+                const data = await resp.json();
+
+                if (data.status === "en_partida") {
+                    window.location.href = `/api/partidas/partida/${data.id_partida}`;
+                    return;
+                }
+
+                if (data.status === "sin_partida") {
+                    const crear = confirm(`¿${nombrePersonaje} no está en ninguna partida?\n\nAceptar = Crear partida\nCancelar = Unirse a una existente`);
+
+                    if (crear) {
+                        const nombrePartida = prompt("Nombre de la nueva partida:");
+                        if (!nombrePartida) return;
+
+                        const respCreate = await fetch('/api/partidas/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id_personaje: idPersonaje, nombre_partida: nombrePartida })
+                        });
+
+                        const result = await respCreate.json();
+                        respCreate.ok
+                            ? alert("Partida creada")
+                            : alert("Error: " + result.error);
+
+                    } else {
+                        const codigo = prompt("Ingresa el código de la partida:");
+                        if (!codigo) return;
+
+                        const respJoin = await fetch('/api/partidas/join', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id_personaje: idPersonaje, codigo: codigo })
+                        });
+
+                        const result = await respJoin.json();
+                        respJoin.ok
+                            ? alert("Te uniste correctamente")
+                            : alert("Error: " + result.error);
+                    }
+                }
+
+            } catch (error) {
+                alert("Error al gestionar la partida: " + error);
+            }
+        }
+
+
     </script>
+
 </body>
+
 </html>

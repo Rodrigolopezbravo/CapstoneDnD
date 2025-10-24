@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,14 +13,16 @@
             color: #fff;
             min-height: 100vh;
         }
+
         .panel {
             background-color: #f4f7f6;
             color: #333;
             border-radius: 6px;
             padding: 10px;
-            box-shadow: inset 0 0 6px rgba(0,0,0,0.1);
+            box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
             height: 100%;
         }
+
         .panel-title {
             font-weight: bold;
             border-bottom: 1px solid #ccc;
@@ -27,7 +30,9 @@
             padding-bottom: 3px;
             font-size: 0.9rem;
         }
-        .chat-box, .event-log {
+
+        .chat-box,
+        .event-log {
             height: 200px;
             overflow-y: auto;
             border: 1px solid #ccc;
@@ -35,7 +40,30 @@
             padding: 8px;
             background: #fff;
             font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
         }
+
+        /* Estilos de mensajes */
+        .chat-box p {
+            margin: 0;
+            line-height: 1.2;
+            word-wrap: break-word;
+            padding-bottom: 2px;
+        }
+
+        .chat-box p.system {
+            color: gray;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .chat-box p.propio {
+            font-weight: bold;
+            color: #007bff;
+            /* Azul para el usuario actual */
+        }
+
         .action-button {
             width: 100%;
             margin-bottom: 6px;
@@ -48,10 +76,12 @@
             font-size: 0.85rem;
             transition: 0.2s;
         }
+
         .action-button:hover {
             background-color: #666;
             transform: translateY(-2px);
         }
+
         .codigo-box {
             background: #333;
             color: #fff;
@@ -61,6 +91,7 @@
             align-items: center;
             gap: 8px;
         }
+
         .copy-btn {
             border: none;
             background: #555;
@@ -70,11 +101,13 @@
             font-size: 0.8rem;
             cursor: pointer;
         }
+
         .copy-btn:hover {
             background: #777;
         }
     </style>
 </head>
+
 <body class="container-fluid py-2">
 
     <div class="text-center mb-3">
@@ -85,18 +118,19 @@
         </div>
     </div>
 
-    <!-- pestaña para celulares -->
     <ul class="nav nav-tabs d-md-none" id="partidaTabs" role="tablist">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-board">Tablero</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-players">Jugadores</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-events">Eventos</button></li>
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab"
+                data-bs-target="#tab-board">Tablero</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#tab-players">Jugadores</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-events">Eventos</button>
+        </li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-chat">Chat</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-actions">Acciones</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#tab-actions">Acciones</button></li>
     </ul>
 
-    <!-- version pc -->
     <div class="row d-none d-md-flex g-2 align-items-stretch">
-        <!-- tabla de jugadores -->
         <div class="col-md-2 d-flex flex-column">
             <div class="panel p-2 flex-grow-1">
                 <h6 class="panel-title">Jugadores</h6>
@@ -106,11 +140,11 @@
             </div>
         </div>
 
-        <!-- tablero y eventos -->
         <div class="col-md-7 d-flex flex-column">
             <div class="panel p-2 mb-2 flex-grow-1">
                 <h6 class="panel-title">Tablero</h6>
-                <div style="height:350px; background:#ddd; border-radius:6px; display:flex; justify-content:center; align-items:center;">
+                <div
+                    style="height:350px; background:#ddd; border-radius:6px; display:flex; justify-content:center; align-items:center;">
                     <span style="color:#555;">[ aquí agregaremos el tablero ]</span>
                 </div>
             </div>
@@ -122,16 +156,14 @@
             </div>
         </div>
 
-        <!-- chat y acciones -->
         <div class="col-md-3 d-flex flex-column">
             <div class="panel p-2 mb-2 flex-grow-1">
                 <h6 class="panel-title">Chat</h6>
-                <div class="chat-box small flex-grow-1">
-                    <p class="text-muted">[ Próximamente ]</p>
+                <div id="chat-box-pc" class="chat-box small flex-grow-1">
                 </div>
                 <div class="input-group mt-2 input-group-sm">
-                    <input type="text" class="form-control" placeholder="Mensaje...">
-                    <button class="btn btn-primary">➤</button>
+                    <input id="chat-input-pc" type="text" class="form-control" placeholder="Mensaje...">
+                    <button id="chat-send-btn-pc" class="btn btn-primary">➤</button>
                 </div>
             </div>
 
@@ -149,11 +181,11 @@
         </div>
     </div>
 
-    <!-- version celular -->
     <div class="tab-content d-md-none mt-2">
         <div class="tab-pane fade show active panel" id="tab-board">
             <h6 class="panel-title">Tablero</h6>
-            <div style="height:250px; background:#ddd; border-radius:6px; display:flex; justify-content:center; align-items:center;">
+            <div
+                style="height:250px; background:#ddd; border-radius:6px; display:flex; justify-content:center; align-items:center;">
                 <span style="color:#555;">[ aquí agregaremos el tablero ]</span>
             </div>
         </div>
@@ -164,13 +196,36 @@
                 <li class="list-group-item text-center">Cargando...</li>
             </ul>
         </div>
+
+        <div class="tab-pane fade panel" id="tab-chat">
+            <h6 class="panel-title">Chat</h6>
+            <div id="chat-box-movil" class="chat-box small flex-grow-1">
+            </div>
+            <div class="input-group mt-2 input-group-sm">
+                <input id="chat-input-movil" type="text" class="form-control" placeholder="Mensaje...">
+                <button id="chat-send-btn-movil" class="btn btn-primary">➤</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        const ID_PARTIDA = {{ partida.id }};
+    const ID_PARTIDA = {{ partida.id if partida else 0 }};
+    const ID_PERSONAJE = {{ id_personaje if id_personaje else 0 }};
+    const USER_ID = {{ id_usuario if id_usuario else 0 }};
+
         document.addEventListener('DOMContentLoaded', cargarJugadores);
+
+        // --- Elementos del Chat (Simplificamos para manejar PC y Móvil) ---
+        const chatBoxPC = document.getElementById('chat-box-pc');
+        const inputMsgPC = document.getElementById('chat-input-pc');
+        const btnSendPC = document.getElementById('chat-send-btn-pc');
+
+        const chatBoxMovil = document.getElementById('chat-box-movil');
+        const inputMsgMovil = document.getElementById('chat-input-movil');
+        const btnSendMovil = document.getElementById('chat-send-btn-movil');
+
 
         async function cargarJugadores() {
             try {
@@ -203,7 +258,139 @@
             navigator.clipboard.writeText(codigo);
             alert("Código copiado: " + codigo);
         }
+
+        // --- Funciones de Chat ---
+
+        function agregarMensaje(texto, tipo = "normal") {
+            const p = document.createElement("p");
+            p.textContent = texto;
+            p.className = tipo;
+
+            chatBoxPC.appendChild(p.cloneNode(true));
+            chatBoxMovil.appendChild(p.cloneNode(true));
+
+
+            chatBoxPC.scrollTop = chatBoxPC.scrollHeight;
+            chatBoxMovil.scrollTop = chatBoxMovil.scrollHeight;
+        }
+
+        async function cargarHistorialChat() {
+            agregarMensaje("[ Cargando historial... ]", "system");
+            try {
+                const resp = await fetch(`/api/chat/partida/${ID_PARTIDA}`);
+                const mensajes = await resp.json();
+
+                chatBoxPC.innerHTML = "";
+                chatBoxMovil.innerHTML = "";
+
+                if (mensajes.length === 0) {
+                    agregarMensaje("[ Sin mensajes anteriores ]", "system");
+                    return;
+                }
+
+                mensajes.forEach(msg => {
+                    const tipo = (String(msg.id_usuario) === String(USER_ID)) ? "propio" : "normal";
+                    agregarMensaje(`${msg.nombre_personaje} (${msg.username}): ${msg.mensaje}`, tipo);
+                });
+
+            } catch (err) {
+                console.error("Error al cargar el historial de chat:", err);
+                agregarMensaje("[ Error al cargar el historial ]", "system");
+            }
+        }
+
+        function enviarMensaje() {
+            const inputElement = document.activeElement === inputMsgMovil ? inputMsgMovil : inputMsgPC;
+            const mensaje = inputElement.value.trim();
+            if (!mensaje) return;
+
+
+            inputMsgPC.disabled = true;
+            btnSendPC.disabled = true;
+            inputMsgMovil.disabled = true;
+            btnSendMovil.disabled = true;
+
+            socket.emit("send_message", {
+                id_partida: ID_PARTIDA,
+                id_personaje: ID_PERSONAJE,
+                mensaje: mensaje
+            });
+
+            inputElement.value = "";
+
+
+            inputMsgPC.disabled = false;
+            btnSendPC.disabled = false;
+            inputMsgMovil.disabled = false;
+            btnSendMovil.disabled = false;
+            inputElement.focus();
+        }
+
+
+
     </script>
 
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io("http://127.0.0.1:5000", {
+            transports: ['websocket'],
+            withCredentials: true
+        });
+
+        // Event Listeners para el chat
+        btnSendPC.addEventListener("click", enviarMensaje);
+        inputMsgPC.addEventListener("keypress", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                enviarMensaje();
+            }
+        });
+
+        btnSendMovil.addEventListener("click", enviarMensaje);
+        inputMsgMovil.addEventListener("keypress", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                enviarMensaje();
+            }
+        });
+
+
+        socket.on("connect", () => {
+            console.log("Socket conectado");
+
+            socket.emit("join_partida", {
+                id_partida: ID_PARTIDA,
+                id_personaje: ID_PERSONAJE
+            });
+        });
+
+        socket.on("connected", data => {
+            console.log("Usuario autenticado:", data);
+        });
+
+        socket.on("joined", data => {
+            console.log("Unido a la sala:", data.room);
+            cargarHistorialChat();
+        });
+
+        socket.on("system", data => {
+            agregarMensaje(`[Sistema] ${data.msg}`, "system");
+        });
+
+        socket.on("new_message", data => {
+            const tipo = (String(data.id_usuario) === String(USER_ID)) ? "propio" : "normal";
+            const texto = data.nombre_personaje
+                ? `${data.nombre_personaje} (${data.username}): ${data.mensaje}`
+                : `${data.username}: ${data.mensaje}`;
+            agregarMensaje(texto, tipo);
+        });
+
+        socket.on("error", data => {
+            console.error("Error de Socket:", data.msg);
+            agregarMensaje(`[Error] ${data.msg}`, "system");
+        });
+
+    </script>
 </body>
+
 </html>

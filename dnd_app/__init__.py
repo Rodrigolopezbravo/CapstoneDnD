@@ -1,14 +1,17 @@
 from flask import Flask, render_template, redirect, url_for, request
-from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, verify_jwt_in_request, get_jwt_identity
 from datetime import timedelta
 from dnd_app.oracle_db import get_connection_pool
+from flask_socketio import SocketIO
 import oracledb
 import os
 
-db = SQLAlchemy()
 jwt = JWTManager()
 pool = get_connection_pool()
+socketio = SocketIO(socketio = SocketIO(
+    cors_allowed_origins=["http://127.0.0.1:5000"],
+    cookie=True
+))
 
 def create_app():
     app = Flask(__name__)
@@ -25,9 +28,8 @@ def create_app():
     app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Desarrollo
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
 
-    db.init_app(app)
     jwt.init_app(app)
-
+    socketio.init_app(app)
     # Importar y registrar blueprints
     from .routes.auth import auth_bp
     from .routes.personajes import personajes_bp
@@ -104,11 +106,5 @@ def create_app():
             user = None
 
         return dict(current_user=user)
-
-
-    # Crear tablas SQLite si no existen
-    with app.app_context():
-        from . import models
-        db.create_all()
 
     return app

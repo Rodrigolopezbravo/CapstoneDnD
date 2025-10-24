@@ -1,8 +1,5 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from dnd_app import db
-from dnd_app.models import Partida, Encuentro, Personaje, GameEvent
-#from dnd_app.combat import generate_encounter if False else None  # placeholder; we will import generate_encounter only if exists
 from dnd_app import combat
 
 encuentros_bp = Blueprint("encuentros", __name__)

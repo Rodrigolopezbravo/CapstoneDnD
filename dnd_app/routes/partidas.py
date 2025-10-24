@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 import oracledb
 from dnd_app.oracle_db import get_connection_pool
 
@@ -81,7 +81,26 @@ def ver_partida(id_partida):
                     "codigo": row[5]
                 }
 
-        return render_template("partida.html", partida=partida)
+                id_usuario = get_jwt_identity()
+
+                
+                out_cursor_personaje = cursor.var(oracledb.DB_TYPE_CURSOR)
+                cursor.callproc("pkg_partida.traer_jugadores_partida", [id_partida, out_cursor_personaje])
+
+                id_personaje = None
+                for jugador in out_cursor_personaje.getvalue():
+                    
+                    if int(jugador[0]) == int(id_usuario):
+                        id_personaje = jugador[2]
+                        break
+
+        
+        return render_template(
+            "partida.html",
+            partida=partida,
+            id_personaje=int(id_personaje) if id_personaje else 0,
+            id_usuario=int(id_usuario)
+        )
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -98,9 +117,11 @@ def traer_jugadores(id_partida):
 
                 for row in out_cursor.getvalue():
                     jugadores.append({
-                        "usuario": row[0],
-                        "personaje": row[1],
-                        "clase": row[2]           
+                        "id_usuario": row[0],
+                        "usuario": row[1],
+                        "id_personaje": row[2],
+                        "personaje": row[3],
+                        "clase": row[4]       
                     })
 
         return jsonify(jugadores), 200

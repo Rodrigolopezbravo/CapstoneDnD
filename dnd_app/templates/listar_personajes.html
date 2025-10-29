@@ -8,6 +8,7 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
@@ -58,6 +59,58 @@
         </div>
     </div>
 
+    <!-- Modal principal: elegir acción -->
+    <div class="modal fade" id="modalAccionPartida" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Gestión de partida</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p id="modalTextoPersonaje"></p>
+                    <button class="btn btn-success me-2" id="btnCrearPartida">Crear</button>
+                    <button class="btn btn-primary" id="btnUnirsePartida">Unirse</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: crear partida -->
+    <div class="modal fade" id="modalCrear" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Crear</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-3" id="nombrePartidaInput"
+                        placeholder="Nombre de la partida">
+                    <button class="btn btn-success w-100" id="btnConfirmarCrear">Crear partida</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: unirse a partida -->
+    <div class="modal fade" id="modalUnirse" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Unirse a una partida existente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-3" id="codigoPartidaInput"
+                        placeholder="Código de la partida">
+                    <button class="btn btn-primary w-100" id="btnConfirmarUnirse">Unirse</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const tbody = document.getElementById('tabla-personajes-body');
@@ -107,16 +160,13 @@
                 });
         });
 
+        let personajeActual = null;
+
         async function irAPartida(idPersonaje, nombrePersonaje) {
+            personajeActual = { id: idPersonaje, nombre: nombrePersonaje };
+
             try {
                 const resp = await fetch(`/api/partidas/ir/${idPersonaje}`);
-
-                if (!resp.headers.get("content-type")?.includes("application/json")) {
-                    alert("Debes iniciar sesión para continuar.");
-                    window.location.href = "/login";
-                    return;
-                }
-
                 const data = await resp.json();
 
                 if (data.status === "en_partida") {
@@ -124,45 +174,75 @@
                     return;
                 }
 
+                // Mostrar modal si no está en partida
                 if (data.status === "sin_partida") {
-                    const crear = confirm(`¿${nombrePersonaje} no está en ninguna partida?\n\nAceptar = Crear partida\nCancelar = Unirse a una existente`);
-
-                    if (crear) {
-                        const nombrePartida = prompt("Nombre de la nueva partida:");
-                        if (!nombrePartida) return;
-
-                        const respCreate = await fetch('/api/partidas/create', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id_personaje: idPersonaje, nombre_partida: nombrePartida })
-                        });
-
-                        const result = await respCreate.json();
-                        respCreate.ok
-                            ? alert("Partida creada")
-                            : alert("Error: " + result.error);
-
-                    } else {
-                        const codigo = prompt("Ingresa el código de la partida:");
-                        if (!codigo) return;
-
-                        const respJoin = await fetch('/api/partidas/join', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id_personaje: idPersonaje, codigo: codigo })
-                        });
-
-                        const result = await respJoin.json();
-                        respJoin.ok
-                            ? alert("Te uniste correctamente")
-                            : alert("Error: " + result.error);
-                    }
+                    document.getElementById("modalTextoPersonaje").textContent =
+                        `${nombrePersonaje} no está en ninguna partida.`;
+                    const modal = new bootstrap.Modal(document.getElementById("modalAccionPartida"));
+                    modal.show();
                 }
-
             } catch (error) {
-                alert("Error al gestionar la partida: " + error);
+                Swal.fire("Error", "Error al gestionar la partida: " + error, "error");
             }
         }
+
+        // --- Eventos de los botones de los modales ---
+        document.getElementById("btnCrearPartida").addEventListener("click", () => {
+            const modalAccion = bootstrap.Modal.getInstance(document.getElementById("modalAccionPartida"));
+            modalAccion.hide();
+            new bootstrap.Modal(document.getElementById("modalCrear")).show();
+        });
+
+        document.getElementById("btnUnirsePartida").addEventListener("click", () => {
+            const modalAccion = bootstrap.Modal.getInstance(document.getElementById("modalAccionPartida"));
+            modalAccion.hide();
+            new bootstrap.Modal(document.getElementById("modalUnirse")).show();
+        });
+
+        document.getElementById("btnConfirmarCrear").addEventListener("click", async () => {
+            const nombrePartida = document.getElementById("nombrePartidaInput").value.trim();
+            if (!nombrePartida) return Swal.fire("Atención", "Debes ingresar un nombre.", "warning");
+
+            const resp = await fetch("/api/partidas/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id_personaje: personajeActual.id,
+                    nombre_partida: nombrePartida
+                }),
+            });
+
+            const result = await resp.json();
+            if (resp.ok) {
+                Swal.fire("¡Éxito!", "Partida creada correctamente.", "success").then(() => location.reload());
+                location.reload();
+            } else {
+                Swal.fire("Error", result.error, "error");
+            }
+        });
+
+        document.getElementById("btnConfirmarUnirse").addEventListener("click", async () => {
+            const codigo = document.getElementById("codigoPartidaInput").value.trim();
+            if (!codigo) return Swal.fire("Atención", "Debes ingresar un código.", "warning");
+
+            const resp = await fetch("/api/partidas/join", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id_personaje: personajeActual.id,
+                    codigo: codigo
+                }),
+            });
+
+            const result = await resp.json();
+            if (resp.ok) {
+                Swal.fire("¡Éxito!", "Te uniste correctamente.", "success").then(() => location.reload());
+                location.reload();
+            } else {
+                Swal.fire("Error", result.error, "error");
+            }
+        });
+
 
 
     </script>

@@ -1,77 +1,41 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Proyecto</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&display=swap" rel="stylesheet">
+
 </head>
+
 <body>
     <div>
         {% include 'partials/header.html' %}
 
         <div class="section1">
-            <h1 class="text">COMBAT TRACKER</h1>
+            <h1 class="text fx-slash">COMBAT TRACKER</h1>
         </div>
 
         <div class="content content1">
-            <div class="content-text">
-                <h2>Tus personajes</h2>
-                
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Nivel</th>
-                                <th>Fuerza</th>
-                                <th>Destreza</th>
-                                <th>Constitución</th>
-                                <th>Inteligencia</th>
-                                <th>Sabiduría</th>
-                                <th>Carisma</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Pepe</td>
-                                <td>1</td>
-                                <td>1</td>
-                                <td>1</td>
-                                <td>1</td>
-                                <td>1</td>
-                                <td>1</td>
-                                <td>1</td>
-                                <td>Activo</td>
-                                <td>
-                                    <div class="d-flex flex-column">
-                                        <button onclick="window.location.href='/partida'" class="btn btn-sm btn-primary mb-1">Crear</button>
-                                        <button class="btn btn-sm btn-warning mb-1">Unirse</button>
-                                        <button class="btn btn-sm btn-danger">Eliminar</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <h2>Crea tu personaje</h2>
+            <br>
+            <p class="lead">Diseña un nuevo aventurero para tus próximas partidas. Elige su raza, clase y equipo
+                para darle vida a tu héroe.</p>
+            <a href="personajes" class="btn btn-lg btn-primary mt-3">Crear Personaje</a>
         </div>
 
-        <div class="content content2">
-            <div class="text">CONTENIDO</div>
-        </div>
-
-        <div class="content content3">
-            <div class="text">CONTENIDO</div>
+        <div class="content content2 text-center py-5">
+            <h2>Personajes</h2>
+            <br>
+            <p class="lead">Consulta la lista de tus personajes creados, revisa sus atributos, unete o crea partidas.</p>
+            <a href="listar_personajes" class="btn btn-lg btn-primary mt-3">Ver Personajes</a>
         </div>
 
     </div>
-
-    <script></script>
     <script>
         const header = document.querySelector('header');
 
@@ -83,5 +47,9 @@
             }
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
 </body>
+
 </html>

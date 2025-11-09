@@ -1,0 +1,106 @@
+body {
+    background-color: #000000;
+    color: #fff;
+    min-height: 100vh;
+}
+
+.panel {
+    background-color: #f4f7f6;
+    color: #333;
+    border-radius: 6px;
+    padding: 10px;
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+    height: 100%;
+}
+
+.panel-title {
+    font-weight: bold;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 5px;
+    padding-bottom: 3px;
+    font-size: 0.9rem;
+}
+
+.chat-box,
+.event-log {
+    height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px;
+    background: #fff;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-box p {
+    margin: 0;
+    line-height: 1.2;
+    word-wrap: break-word;
+    padding-bottom: 2px;
+}
+
+.chat-box p.system {
+    color: gray;
+    font-style: italic;
+    text-align: center;
+}
+
+.chat-box p.propio {
+    font-weight: bold;
+    color: #007bff;
+    /* Azul para el usuario actual */
+}
+
+.action-button {
+    width: 100%;
+    margin-bottom: 6px;
+    background-color: #4a4a4a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    transition: 0.2s;
+}
+
+.action-button:hover {
+    background-color: #666;
+    transform: translateY(-2px);
+}
+
+.codigo-box {
+    background: #333;
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.copy-btn {
+    border: none;
+    background: #555;
+    color: #fff;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.copy-btn:hover {
+    background: #777;
+}
+
+/* Estilo para el span dentro del tablero */
+#tablero-container span,
+#tablero-container-movil span {
+    color: #555;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}

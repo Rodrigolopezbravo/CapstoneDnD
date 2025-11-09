@@ -6,33 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Partida D&D - {{ partida.nombre }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <style>
-        body { background-color: #222; color: #fff; min-height: 100vh; }
-        .panel { background-color: #f4f7f6; color: #333; border-radius: 6px; padding: 10px; box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1); height: 100%; }
-        .panel-title { font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px; padding-bottom: 3px; font-size: 0.9rem; }
-        .chat-box, .event-log { 
-            height: 200px; 
-            overflow-y: auto; 
-            border: 1px solid #ccc; 
-            border-radius: 6px; 
-            padding: 8px; 
-            background: #fff; 
-            font-size: 0.85rem; 
-            display: flex; 
-            flex-direction: column; 
-        }
-        .chat-box p { margin: 0; line-height: 1.2; word-wrap: break-word; padding-bottom: 2px; }
-        .chat-box p.system { color: gray; font-style: italic; text-align: center; }
-        .chat-box p.propio { font-weight: bold; color: #007bff; /* Azul para el usuario actual */ }
-        .action-button { width: 100%; margin-bottom: 6px; background-color: #4a4a4a; color: #fff; border: none; border-radius: 6px; padding: 8px; font-weight: bold; font-size: 0.85rem; transition: 0.2s; }
-        .action-button:hover { background-color: #666; transform: translateY(-2px); }
-        .codigo-box { background: #333; color: #fff; border-radius: 8px; padding: 8px 12px; display: inline-flex; align-items: center; gap: 8px; }
-        .copy-btn { border: none; background: #555; color: #fff; border-radius: 4px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer; }
-        .copy-btn:hover { background: #777; }
-        /* Estilo para el span dentro del tablero */
-        #tablero-container span, #tablero-container-movil span { color: #555; display: flex; justify-content: center; align-items: center; height: 100%; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/partida.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="container-fluid py-2">
@@ -46,18 +21,24 @@
     </div>
 
     <ul class="nav nav-tabs d-md-none" id="partidaTabs" role="tablist">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-board">Tablero</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-players">Jugadores</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-events">Eventos</button></li>
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab"
+                data-bs-target="#tab-board">Tablero</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#tab-players">Jugadores</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-events">Eventos</button>
+        </li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-chat">Chat</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-actions">Acciones</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#tab-actions">Acciones</button></li>
     </ul>
 
     <div class="row d-none d-md-flex g-2 align-items-stretch">
         <div class="col-md-2 d-flex flex-column">
             <div class="panel p-2 flex-grow-1">
                 <h6 class="panel-title">Jugadores</h6>
-                <ul id="lista-jugadores" class="list-group list-group-flush small"><li class="list-group-item text-center">Cargando...</li></ul>
+                <ul id="lista-jugadores" class="list-group list-group-flush small">
+                    <li class="list-group-item text-center">Cargando...</li>
+                </ul>
             </div>
         </div>
 
@@ -136,16 +117,16 @@
         // *** VARIABLES DE CONTEXTO OBTENIDAS DEL SERVIDOR ***
         // Estas líneas toman los valores de la función ver_partida en partidas.py
         const ID_PARTIDA = parseInt("{{ partida.id | default(0) }}", 10);
-        const ID_PERSONAJE = parseInt("{{ id_personaje | default(0) }}", 10); 
+        const ID_PERSONAJE = parseInt("{{ id_personaje | default(0) }}", 10);
         const USER_ID = parseInt("{{ id_usuario | default(0) }}", 10);
-        
+
         // --- Elementos del Chat (Definidos aquí) ---
-        let socket; 
+        let socket;
         const chatBoxPC = document.getElementById('chat-box-pc');
         const inputMsgPC = document.getElementById('chat-input-pc');
         const btnSendPC = document.getElementById('chat-send-btn-pc');
         const tableroPC = document.getElementById('tablero-container');
-        
+
         const chatBoxMovil = document.getElementById('chat-box-movil');
         const inputMsgMovil = document.getElementById('chat-input-movil');
         const btnSendMovil = document.getElementById('chat-send-btn-movil');
@@ -153,12 +134,12 @@
 
 
         document.addEventListener('DOMContentLoaded', () => {
-            
+
             // 1. Inicialización de Socket.IO
             if (ID_PARTIDA === 0 || ID_PERSONAJE === 0 || USER_ID === 0) {
-                 console.error("Error: Falta ID_PARTIDA, ID_PERSONAJE o USER_ID. No se inicializa el socket.");
-                 if (chatBoxPC) chatBoxPC.innerHTML = '<p class="system">[Error Crítico: Faltan IDs de usuario/personaje/partida.]</p>';
-                 return;
+                console.error("Error: Falta ID_PARTIDA, ID_PERSONAJE o USER_ID. No se inicializa el socket.");
+                if (chatBoxPC) chatBoxPC.innerHTML = '<p class="system">[Error Crítico: Faltan IDs de usuario/personaje/partida.]</p>';
+                return;
             }
 
             socket = io("http://127.0.0.1:5000", {
@@ -189,25 +170,25 @@
             // 5. Eventos de Recepción (new_message, tablero_code, etc.)
             socket.on("connected", data => { console.log("Usuario autenticado:", data); });
             socket.on("system", data => { agregarMensaje(`[Sistema] ${data.msg}`, "system"); });
-            
+
             socket.on("new_message", data => {
                 const esPropio = (String(data.id_usuario) === String(USER_ID));
-                const tipo = esPropio ? "propio" : 
-                            (data.username === "Gemini" || data.username === "Sistema") ? "system" : "normal";
-                
+                const tipo = esPropio ? "propio" :
+                    (data.username === "Gemini" || data.username === "Sistema") ? "system" : "normal";
+
                 const texto = data.nombre_personaje
                     ? `${data.nombre_personaje} (${data.username}): ${data.mensaje}`
                     : `${data.username}: ${data.mensaje}`;
-                
+
                 agregarMensaje(texto, tipo);
 
                 if (data.username === "Sistema" && data.mensaje.includes("Generando")) {
-                     actualizarTablero(data.mensaje, false);
+                    actualizarTablero(data.mensaje, false);
                 }
             });
 
             socket.on("error", data => { console.error("Error de Socket:", data.msg); agregarMensaje(`[Error] ${data.msg}`, "system"); });
-            
+
             // --- Funciones del Tablero (Recibir contenido) ---
             socket.on("mapa_nuevo", data => {
                 if (data.url_imagen) {
@@ -267,7 +248,7 @@
 
                 mensajes.forEach(msg => {
                     const tipo = (String(msg.id_usuario) === String(USER_ID)) ? "propio" : "normal";
-                    const personaje = msg.nombre_personaje || msg.username || 'Sistema'; 
+                    const personaje = msg.nombre_personaje || msg.username || 'Sistema';
                     const username_display = (msg.nombre_personaje && msg.username) ? ` (${msg.username})` : '';
                     const texto = `${personaje}${username_display}: ${msg.mensaje}`;
 
@@ -282,14 +263,23 @@
 
         function enviarMensaje() {
             const inputElement = document.activeElement === inputMsgMovil ? inputMsgMovil : inputMsgPC;
-            if (!inputElement || !socket) return; 
+            if (!inputElement || !socket) return;
 
             const mensaje = inputElement.value.trim();
             // *** ARREGLO CLAVE: Se verifica que los IDs sean válidos para enviar el mensaje ***
             if (!mensaje || ID_PARTIDA === 0 || ID_PERSONAJE === 0) {
-                 console.error("No se puede enviar el mensaje: ID_PARTIDA, ID_PERSONAJE o Mensaje está vacío.");
-                 if (ID_PERSONAJE === 0) alert("No puedes enviar mensajes: No tienes un personaje en esta partida.");
-                 return;
+                console.error("No se puede enviar el mensaje: ID_PARTIDA, ID_PERSONAJE o Mensaje está vacío.");
+                if (ID_PERSONAJE === 0) {
+                    Swal.fire({
+                        title: "No puedes enviar mensajes",
+                        text: "No tienes un personaje asignado en esta partida.",
+                        icon: "warning",
+                        background: "#1b1b1b",
+                        color: "#fff",
+                        confirmButtonColor: "#b8934d"
+                    });
+                }
+                return;
             }
 
             // Deshabilitar temporalmente
@@ -304,7 +294,7 @@
                 id_personaje: ID_PERSONAJE, // <--- Dato crucial para el backend
                 mensaje: mensaje
             });
-            
+
             inputElement.value = "";
             inputElement.focus();
 
@@ -337,7 +327,7 @@
 
                 if (ulPc) ulPc.innerHTML = "";
                 if (ulMovil) ulMovil.innerHTML = "";
-                
+
                 if (jugadores.length === 0) {
                     if (ulPc) ulPc.innerHTML = `<li class="list-group-item text-center text-muted">No hay jugadores aún</li>`;
                     if (ulMovil) ulMovil.innerHTML = ulPc.innerHTML;
@@ -359,7 +349,16 @@
         function copiarCodigo() {
             const codigo = document.getElementById("codigoPartida").textContent;
             navigator.clipboard.writeText(codigo);
-            alert("Código copiado: " + codigo);
+            Swal.fire({
+                title: "Código copiado 📋",
+                text: `El código "${codigo}" se ha copiado correctamente.`,
+                icon: "success",
+                background: "#1b1b1b",
+                color: "#fff",
+                confirmButtonColor: "#b8934d",
+                timer: 2000,
+                showConfirmButton: false
+            });
         }
     </script>
 </body>

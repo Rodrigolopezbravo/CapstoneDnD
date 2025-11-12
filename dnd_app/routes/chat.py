@@ -12,7 +12,7 @@ import google.generativeai as genai
 import base64
 from io import BytesIO
 
-# Referencia global a la instancia de la aplicación
+# Referencia global a la instancia de la aplicación (INICIALMENTE NONE)
 APP_INSTANCE = None 
 
 try:
@@ -22,6 +22,7 @@ try:
 except ImportError:
     vertex_imports_ok = False
     
+# Importamos el archivo de credenciales (Ajuste de ruta: dnd_app/walletcredentials.py)
 try:
     from dnd_app import walletcredentials 
     SECRETS_API_KEY = getattr(walletcredentials, 'GEMINI_API_KEY_LOCAL', None)
@@ -30,7 +31,7 @@ except ImportError:
     print("ADVERTENCIA: No se pudo importar walletcredentials. Usando variables de entorno.")
 
 # Variables Globales
-ID_USUARIO_GEMINI = 0 
+ID_USUARIO_GEMINI = 101 # Usamos 101 (Usuario Narrador)
 NOMBRE_USUARIO_GEMINI = "DM Gema"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or SECRETS_API_KEY
 
@@ -70,7 +71,7 @@ def guardar_mensaje_ia_en_db(id_partida, mensaje_ia):
     try:
         with pool.acquire() as conn:
             with conn.cursor() as cursor:
-                # *** CORRECCIÓN: Usamos el SP correcto de PKG_PARTIDA ***
+                # *** LLAMANDO AL SP DE PKG_PARTIDA ***
                 cursor.callproc(
                     "pkg_partida.guardar_mensaje_dm",
                     [id_partida, mensaje_ia]
@@ -82,7 +83,7 @@ def guardar_mensaje_ia_en_db(id_partida, mensaje_ia):
         else:
             print(f"Error al guardar mensaje de IA en DB (sin app context): {e}")
 
-# --- SETUP DEL MÓDULO ---
+# --- SETUP DEL MÓDULO (PARA QUE __init__.py PUEDA LLAMARLA) ---
 def setup_chat_module(app):
     """Inicializa la instancia global de la aplicación para el manejo de hilos."""
     global APP_INSTANCE
@@ -102,7 +103,8 @@ def obtener_usuario(user_id):
                 if row:
                     return {"id": row[0], "username": row[1], "email": row[2]}
     except Exception:
-        if app: app.logger.exception("Error obteniendo usuario")
+        if app:
+            app.logger.exception("Error obteniendo usuario")
     return None
 
 def get_current_user_id_or_none():
@@ -184,9 +186,27 @@ def handle_join_partida(data):
         usuario = obtener_usuario(user_id)
         username = usuario["username"] if usuario else f"user_{user_id}"
 
+    
         emit("system", {"msg": f"{username} se unió a la partida."}, room=room, skip_sid=request.sid)
         
+        
         if narracion_inicio:
+            
+            
+            try:
+                with pool.acquire() as conn:
+                    with conn.cursor() as cursor:
+                        
+                        cursor.callproc(
+                            "pkg_partida.crear_encuentro",
+                            [id_partida, "Inicio de la Aventura", "Narración"]
+                        )
+                        conn.commit()
+                print(f"Encuentro inicial 'Inicio de la Aventura' creado para partida {id_partida}.")
+            except Exception as e:
+                current_app.logger.error(f"Error al crear encuentro inicial: {e}")
+               
+            
             prompt_narracion = f"System: El juego acaba de comenzar. {username} es el primer jugador en unirse. Por favor, presenta la escena inicial y describe el entorno. Prepara la acción y termina con una pregunta (ej: '¿Qué hacéis?')."
             chat_histories[id_partida].append({'role': 'user', 'parts': [prompt_narracion]})
             emit("nuevo_evento_ia", {"descripcion": "... 💭"}, room=room)
@@ -201,7 +221,7 @@ def handle_join_partida(data):
 
 @socketio.on("leave_partida")
 def handle_leave_partida(data):
-    # ... (Tu código de leave_partida) ...
+    
     pass
 
 @socketio.on("send_message")
@@ -234,7 +254,7 @@ def handle_send_message(data):
             nombre_archivo = mensaje[len("@mostrar"):].strip()
             return handle_mostrar_command(id_partida, user_id, nombre_archivo, room)
 
-        # --- Mensaje Normal ---
+        
         with pool.acquire() as conn:
             with conn.cursor() as cursor:
                 nombre_completo = cursor.callfunc("pkg_personaje.obtener_nombres_por_personaje", oracledb.STRING, [id_personaje])
@@ -251,7 +271,6 @@ def handle_send_message(data):
         emit("error", {"msg": str(e)})
 
 
-# --- FUNCIONES DE MANEJO DE COMANDOS DE IA ---
 
 def handle_gemini_command(id_partida, user_id, mensaje, room):
     if not gemini_model: return emit("error", {"msg": "IA de Chat no configurada."})
@@ -265,28 +284,41 @@ def handle_gemini_command(id_partida, user_id, mensaje, room):
     return True
 
 def run_gemini_request(id_partida, room):
-    if APP_INSTANCE is None: return 
+    if APP_INSTANCE is None: 
+        print("ERROR CRÍTICO: APP_INSTANCE no está definida en run_gemini_request.")
+        return 
+    
     with APP_INSTANCE.app_context():
         global gemini_model, chat_histories
+        
+        print(f"run_gemini_request: Iniciado para partida {id_partida}.")
         if id_partida not in chat_histories: return
 
         try:
             history = chat_histories[id_partida]
+            print(f"run_gemini_request: Llamando a generate_content...")
             response = gemini_model.generate_content(history, safety_settings=dnd_safety_settings)
+            print(f"run_gemini_request: Respuesta recibida.")
             
             try:
                 gemini_response = response.text 
-            except ValueError:
+            except ValueError as ve:
                 gemini_response = f"[Respuesta bloqueada por filtros de seguridad]"
+                print(f"run_gemini_request: Respuesta bloqueada. Error: {ve}")
 
+            print(f"run_gemini_request: Contenido: '{gemini_response[:100]}...'") 
+            
             chat_histories[id_partida].append({'role': 'model', 'parts': [gemini_response]})
             
-            # *** LÍNEA RESTAURADA ***
+            
             guardar_mensaje_ia_en_db(id_partida, gemini_response) 
             
+            print(f"run_gemini_request: Emitiendo a 'nuevo_evento_ia'...")
             socketio.emit("nuevo_evento_ia", {"descripcion": gemini_response}, room=room)
-        
+            print(f"run_gemini_request: Respuesta emitida.")
+
         except Exception as e:
+            print(f"run_gemini_request: ¡ERROR INESPERADO! {e}") 
             APP_INSTANCE.logger.error(f"Error en Gemini request: {e}", exc_info=True) 
             socketio.emit("nuevo_evento_ia", {"descripcion": f"Error interno: {e}"}, room=room)
 
@@ -299,7 +331,10 @@ def handle_creartablero_command(id_partida, user_id, descripcion, room):
     return True
 
 def run_generar_codigo_tablero(id_partida, descripcion, room):
-    if APP_INSTANCE is None: return 
+    if APP_INSTANCE is None: 
+        print("ERROR CRÍTICO: APP_INSTANCE no está definida en run_generar_codigo_tablero.")
+        return 
+        
     with APP_INSTANCE.app_context():
         try:
             client = genai.Client()
@@ -312,7 +347,7 @@ def run_generar_codigo_tablero(id_partida, descripcion, room):
             if codigo_generado.startswith("python"): codigo_generado = codigo_generado[6:].strip()
             if codigo_generado.startswith("html"): codigo_generado = codigo_generado[4:].strip()
             
-            # *** LÍNEA RESTAURADA ***
+           
             guardar_mensaje_ia_en_db(id_partida, f"Tablero creado: {descripcion}")
             
             socketio.emit('tablero_code', {'codigo': codigo_generado}, room=room)
@@ -337,7 +372,7 @@ def handle_mostrar_command(id_partida, user_id, nombre_archivo, room):
         emit("new_message", {"username": "Sistema", "mensaje": f"Mostrando imagen: {nombre_archivo}"}, room=room)
         socketio.emit('mapa_nuevo', {'url_imagen': url_imagen}, room=room)
         
-        # *** LÍNEA RESTAURADA ***
+       
         guardar_mensaje_ia_en_db(id_partida, f"Mostrando imagen estática: {nombre_archivo}")
         return True
         

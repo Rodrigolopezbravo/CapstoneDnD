@@ -1,3 +1,11 @@
+:root {
+    --color-primary: #8b0000;      
+    --color-secondary: #c0a060;    
+    --color-accent: #000000;      
+    --color-dark: #4b3832;       
+    --color-light: #ffffff;        
+}
+
 body {
     background-color: #000000;
     color: #fff;
@@ -20,6 +28,7 @@ body {
     padding-bottom: 3px;
     font-size: 0.9rem;
 }
+
 
 .chat-box,
 .event-log {
@@ -50,7 +59,6 @@ body {
 .chat-box p.propio {
     font-weight: bold;
     color: #007bff;
-    /* Azul para el usuario actual */
 }
 
 .action-button {
@@ -95,7 +103,6 @@ body {
     background: #777;
 }
 
-/* Estilo para el span dentro del tablero */
 #tablero-container span,
 #tablero-container-movil span {
     color: #555;
@@ -103,4 +110,47 @@ body {
     justify-content: center;
     align-items: center;
     height: 100%;
+}
+
+.modal-medieval {
+    background-color: #111 !important;
+    color: var(--color-light) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+.modal-medieval-header {
+    background-color: var(--color-primary) !important;
+    color: var(--color-light) !important;
+    border-bottom: 2px solid var(--color-light) !important;
+}
+
+.modal-medieval-body {
+    background-color: #111 !important;
+    padding: 0 !important;
+}
+
+.modal-medieval .list-group-item {
+    background-color: #222 !important;
+    border-color: #333 !important;
+    color: var(--color-light) !important;
+    padding: 14px 18px;
+    font-size: 1rem;
+}
+
+.modal-medieval .btn-equipar,
+.modal-medieval .btn-desequipar {
+    background-color: var(--color-primary) !important; 
+    color: #ffffff !important; 
+    border: none !important;
+    padding: 6px 14px !important;
+    font-weight: bold;
+    border-radius: 6px;
+}
+
+.modal-medieval .btn-equipar:hover,
+.modal-medieval .btn-desequipar:hover {
+    background-color: #a30000 !important; 
+    color: #000 !important;
 }

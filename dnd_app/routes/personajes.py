@@ -110,17 +110,15 @@ def obtener_razas():
 
     return jsonify(razas), 200
 
-# =====================================================================
-# Traer detalles de UN personaje específico (¡NUEVA FUNCIÓN!)
-# =====================================================================
 @personajes_bp.route("/<int:id_personaje>", methods=["GET"])
 @jwt_required()
 def get_detalle_personaje(id_personaje):
     user_id = get_jwt_identity()
-    
+
     try:
         with pool.acquire() as conn:
             with conn.cursor() as cursor:
+
                 detalle_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
                 cursor.callproc(
                     "pkg_personaje.traer_detalle_personaje",
@@ -128,39 +126,39 @@ def get_detalle_personaje(id_personaje):
                 )
 
                 result_cursor = detalle_cursor.getvalue()
-                columnas = [col[0] for col in result_cursor.description]
-                
-                personaje_detalle = {}
-                personaje_inventario = []
-                primera_fila = True
+                columnas_det = [col[0] for col in result_cursor.description]
 
-                # Recorremos TODAS las filas que devuelve el cursor
-                for row in result_cursor:
-                    fila_dict = dict(zip(columnas, row))
-
-                    # La primera fila la usamos para sacar los detalles del personaje
-                    if primera_fila:
-                        personaje_detalle = fila_dict.copy() # Copiamos los datos
-                        primera_fila = False
-                    
-                    # De cada fila (incluida la primera), extraemos el item
-                    if fila_dict.get("NOMBRE_EQUIPO"):
-                        personaje_inventario.append({
-                            "NOMBRE": fila_dict.get("NOMBRE_EQUIPO"),
-                            "CANTIDAD": fila_dict.get("CANTIDAD")
-                        })
-
-                if not personaje_detalle:
+                first_row = result_cursor.fetchone()
+                if not first_row:
                     return jsonify({"error": "Personaje no encontrado o no te pertenece"}), 404
-                
-                # Limpiamos los datos del item del objeto 'detalle'
-                personaje_detalle.pop("NOMBRE_EQUIPO", None)
-                personaje_detalle.pop("CANTIDAD", None)
 
-                # Devolvemos todo en un solo JSON estructurado
+                personaje_detalle = dict(zip(columnas_det, first_row))
+
+                for campo in ("NOMBRE_EQUIPO", "CANTIDAD"):
+                    personaje_detalle.pop(campo, None)
+
+                equipo_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
+                cursor.callproc(
+                    "pkg_inventario.traer_equipo_equipado",
+                    [id_personaje, equipo_cursor]
+                )
+                cur_eq = equipo_cursor.getvalue()
+                cols_eq = [col[0] for col in cur_eq.description]
+                equipo_equipado = [dict(zip(cols_eq, row)) for row in cur_eq]
+
+                inv_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
+                cursor.callproc(
+                    "pkg_inventario.traer_equipo_desequipado",
+                    [id_personaje, inv_cursor]
+                )
+                cur_inv = inv_cursor.getvalue()
+                cols_inv = [col[0] for col in cur_inv.description]
+                inventario = [dict(zip(cols_inv, row)) for row in cur_inv]
+
                 return jsonify({
                     "detalle": personaje_detalle,
-                    "inventario": personaje_inventario
+                    "equipo": equipo_equipado,
+                    "inventario": inventario
                 }), 200
 
     except Exception as e:

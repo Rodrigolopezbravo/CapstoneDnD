@@ -1,14 +1,9 @@
 :root {
   --color-primary: #8b0000;
-  /* Rojo sangre */
   --color-secondary: #c0a060;
-  /* Dorado viejo */
   --color-accent: #000000;
-  /* Fondo oscuro */
   --color-dark: #4b3832;
-  /* Marrón cuero */
-  --color-light: #f4f1de;
-  /* Pergamino */
+  --color-light: #ffffff;
 }
 
 body {
@@ -51,7 +46,6 @@ header a:active,
   text-decoration: none !important;
 }
 
-/* Clase para cuando el fondo del header desaparece al hacer scroll */
 header.scrolled {
   background-color: rgba(0, 0, 0, 0);
 }

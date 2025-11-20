@@ -411,7 +411,7 @@
                     return;
                 }
                 j.forEach(p => {
-                    const li = `<li class="list-group-item py-1">${p.personaje} (${p.clase})</li>`;
+                    const li = `<li class="list-group-item py-1">${p.personaje} (${p.clase}) HP: ${p.puntos_vida_actual}/${p.puntos_vida_maximo}</li>`;
                     if (ulPc) ulPc.innerHTML += li;
                     if (ulMovil) ulMovil.innerHTML += li;
                 });

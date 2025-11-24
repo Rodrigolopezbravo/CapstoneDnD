@@ -1,11 +1,10 @@
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, redirect
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import oracledb
-from dnd_app.oracle_db import get_connection_pool
+# Aseguramos usar el pool global
+from dnd_app import pool 
 
 partidas_bp = Blueprint("partidas", __name__)
-pool = get_connection_pool()
-
 
 @partidas_bp.route("/create", methods=["POST"])
 @jwt_required()
@@ -21,7 +20,7 @@ def crear_partida():
         with pool.acquire() as conn:
             with conn.cursor() as cursor:
                 cursor.callproc("pkg_partida.crear_partida", [nombre, personaje_id])
-            conn.commit()
+                conn.commit()
         return jsonify({"message": "Partida creada correctamente"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -74,28 +73,23 @@ def ver_partida(id_partida):
                     return "La partida no existe", 404
 
                 partida = {
-                    "id": row[0],
-                    "nombre": row[1],
-                    "estado": row[2],
-                    "fecha_inicio": row[3],
-                    "codigo": row[5]
+                    "id": row[0], "nombre": row[1], "estado": row[2],
+                    "fecha_inicio": row[3], "codigo": row[5]
                 }
 
                 id_usuario = int(get_jwt_identity())
-
-                out_cursor_personaje = cursor.var(oracledb.DB_TYPE_CURSOR)
-                cursor.callproc("pkg_partida.traer_jugadores_partida", [id_partida, out_cursor_personaje])
-
-                filas = out_cursor_personaje.getvalue()
+                
+                out_cursor_p = cursor.var(oracledb.DB_TYPE_CURSOR)
+                cursor.callproc("pkg_partida.traer_jugadores_partida", [id_partida, out_cursor_p])
 
                 id_personaje = None
-                for jugador in filas:
-                    if int(jugador[0]) == id_usuario:
+                for jugador in out_cursor_p.getvalue():
+                    if int(jugador[0]) == id_usuario: 
                         id_personaje = int(jugador[2])
                         break
 
                 if id_personaje is None:
-                    return jsonify({"error": "No se encontró un personaje del usuario en esta partida."}), 400
+                     return jsonify({"error": "No se encontró un personaje del usuario en esta partida."}), 400
 
         return render_template(
             "partida.html",
@@ -106,9 +100,7 @@ def ver_partida(id_partida):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-
+    
 @partidas_bp.route("/jugadores/<int:id_partida>")
 @jwt_required()
 def traer_jugadores(id_partida):
@@ -121,20 +113,18 @@ def traer_jugadores(id_partida):
 
                 for row in out_cursor.getvalue():
                     jugadores.append({
-                        "id_usuario": row[0],
-                        "usuario": row[1],
-                        "id_personaje": row[2],
-                        "personaje": row[3],
-                        "clase": row[4],
-                        "puntos_vida_actual": row[5],
-                        "puntos_vida_maximo": row[6]
+                        "id_usuario": row[0], "usuario": row[1],
+                        "id_personaje": row[2], "personaje": row[3], "clase": row[4]      
+                        # Añadimos HP si tu SP lo devuelve, si no, quita estas líneas
+                        # "puntos_vida_actual": row[5], 
+                        # "puntos_vida_maximo": row[6]
                     })
 
         return jsonify(jugadores), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
+# --- RUTAS DE INVENTARIO Y EQUIPO ---
 
 @partidas_bp.route("/equipo/<int:id_personaje>", methods=["GET"])
 @jwt_required()
@@ -146,16 +136,13 @@ def traer_equipo(id_personaje):
                 cursor.callproc("pkg_inventario.traer_equipo_equipado", [id_personaje, out_cursor])
 
                 cur = out_cursor.getvalue()
+                # Convertir a diccionario para JSON
                 columnas = [c[0] for c in cur.description]
-
                 result = [dict(zip(columnas, row)) for row in cur]
 
         return jsonify(result), 200
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
 
 @partidas_bp.route("/inventario/<int:id_personaje>", methods=["GET"])
 @jwt_required()
@@ -168,15 +155,11 @@ def traer_inventario(id_personaje):
 
                 cur = out_cursor.getvalue()
                 columnas = [c[0] for c in cur.description]
-
                 result = [dict(zip(columnas, row)) for row in cur]
 
         return jsonify(result), 200
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
 
 @partidas_bp.route("/equipo/equipar", methods=["POST"])
 @jwt_required()
@@ -193,8 +176,6 @@ def equipar_objeto():
         return jsonify({"status": "ok"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
-
 
 @partidas_bp.route("/equipo/desequipar", methods=["POST"])
 @jwt_required()

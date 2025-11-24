@@ -10,54 +10,19 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
+        /* Estilos base de respaldo por si el CSS externo tarda en cargar */
         body { background-color: #222; color: #fff; min-height: 100vh; }
         .panel { background-color: #f4f7f6; color: #333; border-radius: 6px; padding: 10px; box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1); height: 100%; }
-        .panel-title { font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px; padding-bottom: 3px; font-size: 0.9rem; }
+        .chat-box, .event-log { height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 6px; padding: 8px; background: #fff; font-size: 0.85rem; display: flex; flex-direction: column; }
+        .event-log p strong { color: #5a3a7b; }
         
-        .chat-box, .event-log { 
-            height: 200px; 
-            overflow-y: auto; 
-            border: 1px solid #ccc; 
-            border-radius: 6px; 
-            padding: 8px; 
-            background: #fff; 
-            font-size: 0.85rem; 
-            display: flex; 
-            flex-direction: column; 
-        }
-        .chat-box p { margin: 0; line-height: 1.2; word-wrap: break-word; padding-bottom: 2px; }
-        .chat-box p.system { color: gray; font-style: italic; text-align: center; }
-        .chat-box p.propio { font-weight: bold; color: #007bff; }
-        
-        /* Estilos específicos para eventos */
-        .event-log p { margin: 0; padding-bottom: 5px; word-wrap: break-word; }
-        .event-log p strong { color: #5a3a7b; /* Morado para DM Gema */ }
-        
-        /* Botones de Acción */
-        .action-button { width: 100%; margin-bottom: 6px; background-color: #4a4a4a; color: #fff; border: none; border-radius: 6px; padding: 8px; font-weight: bold; font-size: 0.85rem; transition: 0.2s; }
-        .action-button:hover { background-color: #666; transform: translateY(-2px); }
-        
-        /* Estilo especial para el botón de Iniciar */
+        /* Estilo específico para el botón de inicio en el HTML */
         #btn-iniciar-aventura, #btn-iniciar-aventura-movil { 
-            background-color: #d4af37; /* Dorado */
-            color: #000; 
-            font-weight: bold;
+            background-color: #d4af37; color: #000; font-weight: bold; border: 1px solid #b8934d; 
         }
         #btn-iniciar-aventura:hover, #btn-iniciar-aventura-movil:hover { 
-            background-color: #f1c40f; 
-            transform: translateY(-2px); 
+            background-color: #f1c40f; transform: translateY(-2px); 
         }
-        
-        .codigo-box { background: #333; color: #fff; border-radius: 8px; padding: 8px 12px; display: inline-flex; align-items: center; gap: 8px; }
-        .copy-btn { border: none; background: #555; color: #fff; border-radius: 4px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer; }
-        .copy-btn:hover { background: #777; }
-        
-        /* Estilos Tablero */
-        #tablero-container span, #tablero-container-movil span { color: #555; display: flex; justify-content: center; align-items: center; height: 100%; }
-
-        /* Estilos Modal Medieval */
-        .modal-medieval-header { background-color: #333; color: #fff; border-bottom: 1px solid #555; }
-        .modal-medieval-body { background-color: #222; color: #ddd; }
     </style>
 </head>
 
@@ -106,8 +71,7 @@
         <div class="col-md-3 d-flex flex-column">
             <div class="panel p-2 mb-2 flex-grow-1 d-flex flex-column">
                 <h6 class="panel-title">Chat</h6>
-                <div id="chat-box-pc" class="chat-box small flex-grow-1">
-                </div>
+                <div id="chat-box-pc" class="chat-box small flex-grow-1"></div>
                 <div class="input-group mt-2 input-group-sm">
                     <input id="chat-input-pc" type="text" class="form-control" placeholder="Mensaje...">
                     <button id="chat-send-btn-pc" class="btn btn-primary">➤</button>
@@ -132,21 +96,17 @@
 
     <div class="tab-content d-md-none mt-2">
         <div class="tab-pane fade show active panel" id="tab-board">
-            <h6 class="panel-title">Tablero</h6>
             <div id="tablero-container-movil" style="height:250px; background:#ddd; border-radius:6px; display:flex; justify-content:center; align-items:center;">
-                <span style="color:#555;">[ aquí agregaremos el tablero ]</span>
+                <span style="color:#555;">[ Tablero ]</span>
             </div>
         </div>
         <div class="tab-pane fade panel" id="tab-players">
-            <h6 class="panel-title">Jugadores</h6>
             <ul id="lista-jugadores-movil" class="list-group small"><li class="list-group-item text-center">Cargando...</li></ul>
         </div>
         <div class="tab-pane fade panel" id="tab-events">
-             <h6 class="panel-title">Eventos</h6>
              <div id="eventos-movil" class="event-log small" style="max-height:200px; overflow-y:auto;"></div>
         </div>
         <div class="tab-pane fade panel" id="tab-chat">
-            <h6 class="panel-title">Chat</h6>
             <div id="chat-box-movil" class="chat-box small flex-grow-1"></div>
             <div class="input-group mt-2 input-group-sm">
                 <input id="chat-input-movil" type="text" class="form-control" placeholder="Mensaje...">
@@ -154,7 +114,6 @@
             </div>
         </div>
         <div class="tab-pane fade panel" id="tab-actions">
-            <h6 class="panel-title">Acciones</h6>
             <div class="d-grid gap-1">
                 <button class="action-button" id="btn-iniciar-aventura-movil">▶ INICIAR AVENTURA</button>
                 
@@ -174,9 +133,7 @@
                     <h5 class="modal-title" id="modalTitle">Información</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body modal-medieval-body" id="modalBody">
-                    Cargando...
-                </div>
+                <div class="modal-body modal-medieval-body" id="modalBody">Cargando...</div>
             </div>
         </div>
     </div>
@@ -185,7 +142,7 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <script>
-        // *** VARIABLES DE CONTEXTO OBTENIDAS DEL SERVIDOR ***
+        // --- Variables Globales ---
         const ID_PARTIDA = parseInt("{{ partida.id | default(0) }}", 10);
         const ID_PERSONAJE = parseInt("{{ id_personaje | default(0) }}", 10); 
         const USER_ID = parseInt("{{ id_usuario | default(0) }}", 10);
@@ -232,7 +189,7 @@
             if (btnSendMovil) btnSendMovil.addEventListener("click", enviarMensaje);
             if (inputMsgMovil) inputMsgMovil.addEventListener("keypress", e => { if (e.key === "Enter") { e.preventDefault(); enviarMensaje(); } });
 
-            // *** LISTENER BOTÓN INICIAR ***
+           
             const accionIniciar = () => {
                 Swal.fire({
                     title: '¿Iniciar Aventura?',
@@ -244,11 +201,20 @@
                     confirmButtonText: 'Sí, ¡comencemos!'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Usamos la función enviarMensaje pero forzando el texto
                         socket.emit("send_message", {
                             id_partida: ID_PARTIDA,
                             id_personaje: ID_PERSONAJE,
                             mensaje: "@iniciar"
+                        });
+                        
+                        ocultarBotonInicio(); 
+                        
+                        Swal.fire({
+                            title: "Iniciando...",
+                            text: "El Dungeon Master está preparando la mesa.",
+                            icon: "success",
+                            timer: 2000,
+                            showConfirmButton: false
                         });
                     }
                 });
@@ -256,11 +222,9 @@
             if (btnIniciarPC) btnIniciarPC.addEventListener("click", accionIniciar);
             if (btnIniciarMovil) btnIniciarMovil.addEventListener("click", accionIniciar);
 
-
             // Listeners Botones Acción (Equipo/Inventario)
             document.querySelectorAll(".action-equipo").forEach(btn => btn.addEventListener("click", cargarEquipo));
             document.querySelectorAll(".action-inventario").forEach(btn => btn.addEventListener("click", cargarInventario));
-
 
             // Eventos Socket
             socket.on("connect", () => {
@@ -274,13 +238,10 @@
                 const esPropio = (String(data.id_usuario) === String(USER_ID));
                 const tipo = esPropio ? "propio" : "normal";
                 
-                // Si es comando oculto, no mostrar
                 if (data.mensaje === "@iniciar") return;
 
                 if (data.username === "DM Gema" || data.username === "Sistema") {
-                    if (data.mensaje.includes("Generando") || data.mensaje.includes("Viajando")) {
-                        actualizarTablero(data.mensaje, false);
-                    }
+                    if (data.mensaje.includes("Generando")) actualizarTablero(data.mensaje, false);
                     return; 
                 }
                 
@@ -301,17 +262,22 @@
                 if (data.codigo) actualizarTablero(data.codigo, true); 
                 else actualizarTablero("Error: Código vacío.", false);
             });
-            
             socket.on("joined", data => { console.log("Unido:", data.room); });
 
             // IA Eventos
             socket.on('nuevo_evento_ia', (data) => {
                 agregarEvento(`<strong>DM Gema:</strong> ${data.descripcion}`);
+                ocultarBotonInicio(); 
             });
 
         }); // FIN DOMContentLoaded
 
-        // --- Funciones Globales ---
+        // --- Funciones ---
+
+        function ocultarBotonInicio() {
+            if (btnIniciarPC) btnIniciarPC.style.display = 'none';
+            if (btnIniciarMovil) btnIniciarMovil.style.display = 'none';
+        }
 
         function agregarMensaje(texto, tipo = "normal", isHtml = false) {
             const p = document.createElement("p");
@@ -341,7 +307,7 @@
                     return;
                 }
                 msgs.forEach(msg => {
-                    if (String(msg.id_usuario) === "101") return; // Filtrar IA
+                    if (String(msg.id_usuario) === "101") return; 
                     const tipo = (String(msg.id_usuario) === String(USER_ID)) ? "propio" : "normal";
                     const personaje = msg.nombre_personaje || msg.username || 'Sistema'; 
                     const username_display = (msg.nombre_personaje && msg.username) ? ` (${msg.username})` : '';
@@ -358,7 +324,10 @@
                 const resp = await fetch(`/api/chat/eventos/${ID_PARTIDA}`);
                 if (!resp.ok) return;
                 const eventos = await resp.json();
+                
                 if (eventos.length > 0) {
+                    // Si hay historia, ocultamos el botón
+                    ocultarBotonInicio(); 
                     eventos.forEach(evt => {
                         agregarEvento(`<strong>DM Gema:</strong> ${evt.descripcion}`);
                     });
@@ -403,8 +372,10 @@
                 const ulMovil = document.getElementById("lista-jugadores-movil");
                 const resp = await fetch(`/api/partidas/jugadores/${ID_PARTIDA}`);
                 const j = await resp.json();
+
                 if (ulPc) ulPc.innerHTML = "";
                 if (ulMovil) ulMovil.innerHTML = "";
+                
                 if (!j || j.length === 0) {
                     if (ulPc) ulPc.innerHTML = `<li class="list-group-item text-center text-muted">No hay jugadores</li>`;
                     if (ulMovil) ulMovil.innerHTML = ulPc.innerHTML;
@@ -426,17 +397,10 @@
             modalPersonaje.show();
         }
 
-        async function cargarEquipo() {
-            abrirModalInfoBase();
-            await cargarModalInfo(`/api/partidas/equipo/${ID_PERSONAJE}`, "Equipo Equipado", "equipo");
-        }
-
-        async function cargarInventario() {
-            abrirModalInfoBase();
-            await cargarModalInfo(`/api/partidas/inventario/${ID_PERSONAJE}`, "Inventario", "inventario");
-        }
-
-        async function cargarModalInfo(url, titulo, tipoVista) {
+        async function cargarEquipo() { abrirModalInfoBase(); await cargarModalInfo(`/api/partidas/equipo/${ID_PERSONAJE}`, "Equipo Equipado", "equipo"); }
+        async function cargarInventario() { abrirModalInfoBase(); await cargarModalInfo(`/api/partidas/inventario/${ID_PERSONAJE}`, "Inventario", "inventario"); }
+        
+        async function cargarModalInfo(url, titulo, tipo) {
             const mTitle = document.getElementById("modalTitle");
             const mBody = document.getElementById("modalBody");
             mTitle.textContent = titulo;
@@ -481,13 +445,11 @@
             const url = accion === "equipar" ? "/api/partidas/equipo/equipar" : "/api/partidas/equipo/desequipar";
             try {
                 const resp = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ id_personaje: Number(ID_PERSONAJE), id_objeto: Number(idObjeto) })
                 });
-                const data = await resp.json();
-                if (!resp.ok) throw new Error(data.error || "Error al realizar la acción");
-
+                if (!resp.ok) throw new Error("Error acción");
+                
                 Swal.fire({ title: "Éxito", text: "Hecho.", icon: "success", timer: 1000, showConfirmButton: false });
                 if (tipoVista === "equipo") cargarEquipo(); else cargarInventario();
             } catch (err) { Swal.fire({ title: "Error", text: err.message || "Falló", icon: "error" }); }

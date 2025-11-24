@@ -6,11 +6,10 @@ from dnd_app.oracle_db import get_connection_pool
 import oracledb
 import os
 import threading 
-import google.generativeai as genai
-import base64
-from io import BytesIO
 import re
+import google.generativeai as genai
 
+# --- CONFIGURACIÓN ---
 APP_INSTANCE = None 
 
 try:
@@ -26,9 +25,13 @@ try:
 except ImportError:
     SECRETS_API_KEY = None
 
+# Variables Globales
 ID_USUARIO_GEMINI = 101 
 NOMBRE_USUARIO_GEMINI = "DM Gema"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or SECRETS_API_KEY
+
+# *** LISTA DE ENTORNOS PERMITIDOS ***
+ENTORNOS_PERMITIDOS = ["Bosque", "Pueblo", "Ciudad", "Ruina"]
 
 gemini_model = None
 chat_histories = {} 
@@ -47,19 +50,25 @@ dnd_safety_settings = [
     {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
 ]
+
+# *** PROMPT ACTUALIZADO CON RESTRICCIONES DE ENTORNO ***
 SYSTEM_PROMPT = f"""
-Eres '{NOMBRE_USUARIO_GEMINI}', un Dungeon Master asistente para una partida de D&D.
-Tu rol es narrar la historia.
-Si la historia cambia drásticamente de ubicación (ej. entran a una mazmorra, salen a un bosque), 
-inicia tu respuesta con: [[NUEVA_ESCENA|Nombre del Lugar|Tipo de Entorno]].
-Ejemplo: [[NUEVA_ESCENA|Bosque Sombrío|Bosque]] El aire se torna frío...
-Si no hay cambio de zona, simplemente narra. Responde en español, y siempre habla en plural cuando te refieras a los jugadores.
+Eres '{NOMBRE_USUARIO_GEMINI}', un Dungeon Master asistente para D&D.
+Tu rol es narrar la historia y describir los escenarios.
+
+REGLAS DE ENTORNO:
+Los únicos entornos válidos para la mecánica del juego son: {', '.join(ENTORNOS_PERMITIDOS)}.
+Si narras un cambio de escena automático, usa el código: [[NUEVA_ESCENA|Nombre Creativo|TipoExacto]].
+El 'TipoExacto' DEBE ser uno de la lista permitida.
+
+Responde siempre en español.
 """
 
 chat_bp = Blueprint("chat_api", __name__, url_prefix="/api/chat")
 pool = get_connection_pool() 
 
 # --- HELPERS ---
+
 def guardar_mensaje_ia_en_db(id_partida, mensaje_ia):
     app = APP_INSTANCE or current_app
     try:
@@ -93,6 +102,7 @@ def get_current_user_id_or_none():
     except Exception: return None
 
 # --- RUTAS HTTP ---
+
 @chat_bp.route("/partida/<int:id_partida>", methods=["GET"])
 def traer_historial(id_partida):
     mensajes = []
@@ -126,6 +136,7 @@ def traer_historial_eventos(id_partida):
     except Exception: return jsonify([]), 200
 
 # --- SOCKET IO ---
+
 @socketio.on("connect")
 def on_connect():
     user_id = get_current_user_id_or_none() 
@@ -140,30 +151,29 @@ def handle_join_partida(data):
         if not user_id: return disconnect()
         id_partida = int(data.get("id_partida"))
         id_personaje = int(data.get("id_personaje"))
-        if not id_partida or not id_personaje: return
         
         room = f"partida_{id_partida}"
         join_room(room)
         
-        # Solo inicializamos la memoria del historial, NO la narración automática
+        narracion_inicio = False
         if id_partida not in chat_histories:
              chat_histories[id_partida] = [{'role': 'user', 'parts': [SYSTEM_PROMPT]}]
+             try:
+                with pool.acquire() as conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("SELECT count(*) FROM evento e JOIN encuentro en ON e.id_encuentro = en.id_encuentro WHERE en.id_partida = :1", [id_partida])
+                        if cursor.fetchone()[0] == 0: narracion_inicio = True
+             except: narracion_inicio = True
 
         usuario = obtener_usuario(user_id)
         username = usuario["username"] if usuario else f"user_{user_id}"
 
-        # 1. Mensaje de sistema (Chat)
         emit("system", {"msg": f"{username} se unió."}, room=room, skip_sid=request.sid)
-
-        # 2. Saludo simple de DM Gema al jugador (Chat)
-        # (Esto cumple con "solo salude a los jugadores que van entrando")
-        saludo = f"¡Bienvenido a la mesa, {username}! Espera a que el grupo esté listo para comenzar."
-        emit("new_message", {
-            "id_partida": id_partida, 
-            "id_usuario": str(ID_USUARIO_GEMINI), # ID 101
-            "username": NOMBRE_USUARIO_GEMINI, 
-            "mensaje": saludo
-        }, room=room)
+        
+        if narracion_inicio:
+            # Inicia la lógica de creación automática
+            emit("nuevo_evento_ia", {"descripcion": "Preparando el mundo... 🎲"}, room=room)
+            threading.Thread(target=run_inicio_aventura_ia, args=(id_partida, room, username)).start()
         
         emit("joined", {"ok": True, "room": room})
         
@@ -171,16 +181,12 @@ def handle_join_partida(data):
         current_app.logger.exception("join error")
         emit("error", {"msg": str(e)})
 
-@socketio.on("leave_partida")
-def handle_leave_partida(data):
-    # ... (Tu código leave) ...
-    pass
-
 @socketio.on("send_message")
 def handle_send_message(data):
     try:
         user_id = getattr(g, 'user_id', get_current_user_id_or_none()) 
         if not user_id: return
+
         id_partida = int(data.get("id_partida"))
         id_personaje = int(data.get("id_personaje"))
         mensaje = data.get("mensaje", "").strip()
@@ -189,18 +195,14 @@ def handle_send_message(data):
         room = f"partida_{id_partida}"
         msg_low = mensaje.lower()
 
-        # *** NUEVO COMANDO: @iniciar ***
         if msg_low.startswith("@iniciar"):
-            return handle_iniciar_aventura_command(id_partida, user_id, room)
+             return handle_iniciar_aventura_command(id_partida, user_id, room)
         
-        # Otros comandos
-        elif msg_low.startswith("@evento"): return handle_gemini_command(id_partida, user_id, mensaje, room)
-        elif msg_low.startswith("@nueva_escena"): return handle_nueva_escena_command(id_partida, user_id, mensaje[13:].strip(), room)
+        if msg_low.startswith("@evento"): return handle_gemini_command(id_partida, user_id, mensaje, room)
         elif msg_low.startswith("@creartablero"): return handle_creartablero_command(id_partida, user_id, mensaje[13:].strip(), room)
         elif msg_low.startswith("@mapa"): return handle_mapa_command(id_partida, user_id, mensaje[5:].strip(), room)
         elif msg_low.startswith("@mostrar"): return handle_mostrar_command(id_partida, user_id, mensaje[8:].strip(), room)
 
-        # Mensaje Normal
         with pool.acquire() as conn:
             with conn.cursor() as cursor:
                 nombre = cursor.callfunc("pkg_personaje.obtener_nombres_por_personaje", oracledb.STRING, [id_personaje])
@@ -208,11 +210,9 @@ def handle_send_message(data):
                 conn.commit()
         
         emit("new_message", {"id_partida": id_partida, "id_usuario": str(user_id), "username": nombre, "mensaje": mensaje}, room=room)
+        if id_partida in chat_histories: chat_histories[id_partida].append({'role': 'user', 'parts': [f"{nombre}: {mensaje}"]})
         
-        if id_partida in chat_histories:
-            chat_histories[id_partida].append({'role': 'user', 'parts': [f"{nombre}: {mensaje}"]})
-        
-        # Respuesta automática de IA si no es comando (opcional, descomentar si quieres que responda siempre)
+        # La IA escucha todo pero solo responde si decide cambiar escena o si se le invoca (opcional)
         # threading.Thread(target=run_gemini_request, args=(id_partida, room)).start()
 
     except Exception as e:
@@ -220,14 +220,9 @@ def handle_send_message(data):
 
 # --- FUNCIONES IA ---
 
-# *** NUEVA FUNCIÓN PARA COMANDO @iniciar ***
 def handle_iniciar_aventura_command(id_partida, user_id, room):
-    emit("new_message", {"username": "Sistema", "mensaje": "Iniciando la aventura... 🎲"}, room=room)
-    emit("nuevo_evento_ia", {"descripcion": "El Dungeon Master está preparando el escenario... ⏳"}, room=room)
-    
-    # Lanza la lógica de inicio que antes estaba en el join
-    # Usamos "el grupo" como nombre genérico o buscamos el nombre del usuario
-    threading.Thread(target=run_inicio_aventura_ia, args=(id_partida, room, "el grupo")).start()
+    emit("nuevo_evento_ia", {"descripcion": "Iniciando aventura... ⏳"}, room=room)
+    threading.Thread(target=run_inicio_aventura_ia, args=(id_partida, room, "los aventureros")).start()
     return True
 
 def run_inicio_aventura_ia(id_partida, room, username):
@@ -236,42 +231,47 @@ def run_inicio_aventura_ia(id_partida, room, username):
         global gemini_model, chat_histories
         if not gemini_model: return
         try:
+            # 1. Pedir a la IA que elija un entorno válido
+            lista_entornos = ", ".join(ENTORNOS_PERMITIDOS)
             prompt_setup = (
-                f"Vas a iniciar una campaña de D&D. "
-                "Genera un nombre creativo para el primer lugar/encuentro y una palabra para el entorno. "
+                f"Vas a iniciar una campaña de D&D para {username}. "
+                f"Genera un nombre creativo para el primer lugar y elige UN entorno de esta lista: [{lista_entornos}]. "
+                "El entorno debe ser lógico para el inicio (ej. una Taberna suele ser 'Pueblo' o 'Ciudad'). "
                 "Formato obligatorio: NOMBRE|ENTORNO"
             )
             resp_setup = gemini_model.generate_content(prompt_setup, safety_settings=dnd_safety_settings)
+            
+            # Parsear y Validar
             datos = resp_setup.text.strip().split('|')
             nombre_enc = datos[0].strip() if len(datos) > 0 else "Inicio de Aventura"
-            tipo_ent = datos[1].strip() if len(datos) > 1 else "Narración"
+            tipo_ent = datos[1].strip() if len(datos) > 1 else "Pueblo"
             
-            try:
-                with pool.acquire() as conn:
-                    with conn.cursor() as cursor:
-                        cursor.callproc("pkg_partida.crear_encuentro", [id_partida, nombre_enc, tipo_ent])
-                        conn.commit()
-            except Exception: pass
-
+            # Validación estricta (Fallback si la IA alucina)
+            if tipo_ent not in ENTORNOS_PERMITIDOS:
+                tipo_ent = "Pueblo" # Default seguro
+            
+            # 2. Crear Encuentro
+            with pool.acquire() as conn:
+                with conn.cursor() as cursor:
+                    cursor.callproc("pkg_partida.crear_encuentro", [id_partida, nombre_enc, tipo_ent])
+                    conn.commit()
+            
+            # 3. Narrar
             prompt_narracion = (
                 f"System: La aventura comienza en '{nombre_enc}' ({tipo_ent}). "
-                "Describe la escena vívidamente, los olores, sonidos y la atmósfera. "
-                "Termina preguntando qué hacen."
+                "Describe la escena y la atmósfera. Termina preguntando qué hacen."
             )
-            if id_partida not in chat_histories: chat_histories[id_partida] = [{'role': 'user', 'parts': [SYSTEM_PROMPT]}]
-            
             chat_histories[id_partida].append({'role': 'user', 'parts': [prompt_narracion]})
             
             resp_narracion = gemini_model.generate_content(chat_histories[id_partida], safety_settings=dnd_safety_settings)
             texto = resp_narracion.text
-
+            
             chat_histories[id_partida].append({'role': 'model', 'parts': [texto]})
             guardar_mensaje_ia_en_db(id_partida, texto)
             socketio.emit("nuevo_evento_ia", {"descripcion": texto}, room=room)
 
         except Exception as e:
             APP_INSTANCE.logger.error(f"Error inicio IA: {e}")
-            socketio.emit("nuevo_evento_ia", {"descripcion": "Error al iniciar."}, room=room)
 
 def handle_gemini_command(id_partida, user_id, mensaje, room):
     if not gemini_model: return
@@ -292,12 +292,17 @@ def run_gemini_request(id_partida, room):
             try: txt = response.text 
             except: txt = "[Bloqueado]"
             
-            # Detección Automática de Escena
+            # Detección Automática con Validación
             patron = r"\[\[NUEVA_ESCENA\|(.*?)\|(.*?)\]\]"
             match = re.search(patron, txt)
             if match:
                 n_escena = match.group(1).strip()
                 t_entorno = match.group(2).strip()
+                
+                # Validar entorno
+                if t_entorno not in ENTORNOS_PERMITIDOS:
+                    t_entorno = "Ruina" # Default para lugares peligrosos desconocidos
+
                 try:
                     with pool.acquire() as conn:
                         with conn.cursor() as cursor:
@@ -307,38 +312,12 @@ def run_gemini_request(id_partida, room):
                 txt = re.sub(patron, "", txt).strip()
 
             chat_histories[id_partida].append({'role': 'model', 'parts': [txt]})
-            guardar_mensaje_ia_en_db(id_partida, txt) 
+            guardar_mensaje_ia_en_db(id_partida, txt)
             socketio.emit("nuevo_evento_ia", {"descripcion": txt}, room=room)
         except Exception as e:
             APP_INSTANCE.logger.error(f"Gemini error: {e}")
 
-def handle_nueva_escena_command(id_partida, user_id, params, room):
-    if not gemini_model: return emit("error", {"msg": "IA no configurada."})
-    partes = params.split('|')
-    nombre = partes[0].strip() if len(partes) > 0 else "Nueva Escena"
-    entorno = partes[1].strip() if len(partes) > 1 else "General"
-    emit("new_message", {"username": "Sistema", "mensaje": f"Viajando a: {nombre}..."}, room=room)
-    threading.Thread(target=run_cambio_escena, args=(id_partida, room, nombre, entorno)).start()
-    return True
-
-def run_cambio_escena(id_partida, room, nombre, entorno):
-    if APP_INSTANCE is None: return
-    with APP_INSTANCE.app_context():
-        global gemini_model, chat_histories
-        try:
-            with pool.acquire() as conn:
-                with conn.cursor() as cursor:
-                    cursor.callproc("pkg_partida.crear_encuentro", [id_partida, nombre, entorno])
-                    conn.commit()
-            
-            prompt = f"System: El grupo viaja a '{nombre}' ({entorno}). Describe la llegada."
-            if id_partida not in chat_histories: chat_histories[id_partida] = []
-            chat_histories[id_partida].append({'role': 'user', 'parts': [prompt]})
-            run_gemini_request(id_partida, room) 
-
-        except Exception as e:
-            APP_INSTANCE.logger.error(f"Error cambio escena: {e}")
-
+# ... (Otras funciones: creartablero, mapa, mostrar siguen igual) ...
 def handle_creartablero_command(id, u, d, r): return 
 def run_generar_codigo_tablero(id, d, r): return 
 def handle_mapa_command(id, u, p, r): return 

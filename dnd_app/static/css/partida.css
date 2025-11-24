@@ -1,8 +1,8 @@
 :root {
-    --color-primary: #8b0000;      
-    --color-secondary: #c0a060;    
-    --color-accent: #000000;      
-    --color-dark: #4b3832;       
+    --color-primary: #8b0000;       
+    --color-secondary: #c0a060;     
+    --color-accent: #000000;       
+    --color-dark: #4b3832;        
     --color-light: #ffffff;        
 }
 
@@ -28,7 +28,6 @@ body {
     padding-bottom: 3px;
     font-size: 0.9rem;
 }
-
 
 .chat-box,
 .event-log {
@@ -59,6 +58,16 @@ body {
 .chat-box p.propio {
     font-weight: bold;
     color: #007bff;
+}
+
+/* Estilos para el log de eventos */
+.event-log p { 
+    margin: 0; 
+    padding-bottom: 5px; 
+    word-wrap: break-word; 
+}
+.event-log p strong { 
+    color: #5a3a7b; /* Morado para DM Gema */ 
 }
 
 .action-button {
@@ -153,4 +162,29 @@ body {
 .modal-medieval .btn-desequipar:hover {
     background-color: #a30000 !important; 
     color: #000 !important;
+}
+
+/* ESTILOS NUEVOS PARA EL BOTÓN DE INICIO */
+#btn-iniciar-aventura, 
+#btn-iniciar-aventura-movil {
+    background-color: #d4af37; /* Dorado */
+    color: #000;
+    font-weight: bold;
+    border: 1px solid #b8934d;
+}
+
+#btn-iniciar-aventura:hover, 
+#btn-iniciar-aventura-movil:hover {
+    background-color: #f1c40f;
+    transform: translateY(-2px);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+#btn-iniciar-aventura:disabled, 
+#btn-iniciar-aventura-movil:disabled {
+    background-color: #555;
+    color: #aaa;
+    cursor: not-allowed;
+    box-shadow: none;
+    border: none;
 }

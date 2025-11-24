@@ -125,7 +125,9 @@ def traer_jugadores(id_partida):
                         "usuario": row[1],
                         "id_personaje": row[2],
                         "personaje": row[3],
-                        "clase": row[4]
+                        "clase": row[4],
+                        "puntos_vida_actual": row[5],
+                        "puntos_vida_maximo": row[6]
                     })
 
         return jsonify(jugadores), 200

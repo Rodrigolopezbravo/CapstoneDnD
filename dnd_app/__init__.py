@@ -1,5 +1,3 @@
-# dnd_app/__init__.py
-
 from flask import Flask, render_template, redirect, url_for, request
 from flask_jwt_extended import JWTManager, verify_jwt_in_request, get_jwt_identity
 from datetime import timedelta
@@ -36,7 +34,8 @@ def create_app():
     from .routes.personajes import personajes_bp
     from .routes.partidas import partidas_bp
     from .routes.encuentros import encuentros_bp
-    
+    from .routes.tablero import tablero_bp
+
     # *** ¡AQUÍ ESTÁ LA CORRECCIÓN! ***
     # 1. Importar la función setup además del blueprint
     from .routes.chat import chat_bp, setup_chat_module 
@@ -46,6 +45,7 @@ def create_app():
     app.register_blueprint(partidas_bp, url_prefix="/api/partidas")
     app.register_blueprint(encuentros_bp, url_prefix="/api/encuentros")
     app.register_blueprint(chat_bp, url_prefix="/api/chat")
+    app.register_blueprint(tablero_bp, url_prefix="/api/tablero")
 
     # 2. Llamar a la función setup y pasarle la app
     #    Esto asegura que APP_INSTANCE en chat.py no sea None.

@@ -11,12 +11,48 @@
 
     <style>
         /* Estilos de respaldo */
-        body { background-color: #222; color: #fff; min-height: 100vh; }
-        .panel { background-color: #f4f7f6; color: #333; border-radius: 6px; padding: 10px; height: 100%; }
-        .chat-box, .event-log { height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 6px; padding: 8px; background: #fff; font-size: 0.85rem; display: flex; flex-direction: column; }
-        .event-log p strong { color: #5a3a7b; }
-        #btn-iniciar-aventura, #btn-iniciar-aventura-movil { background-color: #d4af37; color: #000; font-weight: bold; border: 1px solid #b8934d; }
-        #btn-iniciar-aventura:hover { background-color: #f1c40f; }
+        body {
+            background-color: #222;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .panel {
+            background-color: #f4f7f6;
+            color: #333;
+            border-radius: 6px;
+            padding: 10px;
+            height: 100%;
+        }
+
+        .chat-box,
+        .event-log {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 8px;
+            background: #fff;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .event-log p strong {
+            color: #5a3a7b;
+        }
+
+        #btn-iniciar-aventura,
+        #btn-iniciar-aventura-movil {
+            background-color: #d4af37;
+            color: #000;
+            font-weight: bold;
+            border: 1px solid #b8934d;
+        }
+
+        #btn-iniciar-aventura:hover {
+            background-color: #f1c40f;
+        }
     </style>
 </head>
 
@@ -31,26 +67,43 @@
     </div>
 
     <ul class="nav nav-tabs d-md-none" id="partidaTabs" role="tablist">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-board">Tablero</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-players">Jugadores</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-events">Eventos</button></li>
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab"
+                data-bs-target="#tab-board">Tablero</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#tab-players">Jugadores</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-events">Eventos</button>
+        </li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-chat">Chat</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-actions">Acciones</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+                data-bs-target="#tab-actions">Acciones</button></li>
     </ul>
 
     <div class="row d-none d-md-flex g-2 align-items-stretch">
         <div class="col-md-2 d-flex flex-column">
             <div class="panel p-2 flex-grow-1">
                 <h6 class="panel-title">Jugadores</h6>
-                <ul id="lista-jugadores" class="list-group list-group-flush small"><li class="list-group-item text-center">Cargando...</li></ul>
+                <ul id="lista-jugadores" class="list-group list-group-flush small">
+                    <li class="list-group-item text-center">Cargando...</li>
+                </ul>
             </div>
         </div>
 
         <div class="col-md-7 d-flex flex-column">
             <div class="panel p-2 mb-2 flex-grow-1">
                 <h6 class="panel-title">Tablero</h6>
-                <div id="tablero-container" style="height:350px; background:#ddd; border-radius:6px; display:flex; justify-content:center; align-items:center;">
-                    <span style="color:#555;">[ Tablero ]</span>
+                <div id="tablero-wrapper">
+                    <div id="tablero-grid">
+                        <div id="party-token"></div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-center mt-2">
+                    <div class="btn-group">
+                        <button onclick="moverTablero('N')" class="btn btn-secondary btn-sm">↑</button>
+                        <button onclick="moverTablero('O')" class="btn btn-secondary btn-sm">←</button>
+                        <button onclick="moverTablero('S')" class="btn btn-secondary btn-sm">↓</button>
+                        <button onclick="moverTablero('E')" class="btn btn-secondary btn-sm">→</button>
+                    </div>
                 </div>
             </div>
             <div class="panel p-2" style="max-height:180px; overflow-y:auto;">
@@ -72,7 +125,6 @@
                 <h6 class="panel-title">Acciones</h6>
                 <div class="d-grid gap-1">
                     <button class="action-button" id="btn-iniciar-aventura">▶ INICIAR AVENTURA</button>
-                    <button class="action-button">Moverse</button>
                     <button class="action-button">Atacar</button>
                     <button class="action-button">Habilidades</button>
                     <button class="action-button">Objeto</button>
@@ -86,13 +138,27 @@
 
     <div class="tab-content d-md-none mt-2">
         <div class="tab-pane fade show active panel" id="tab-board">
-            <div id="tablero-container-movil" style="height:250px; background:#ddd; border-radius:6px; display:flex; justify-content:center; align-items:center;"></div>
+            <div id="tablero-wrapper-movil">
+                <div id="tablero-grid-movil">
+                    <div id="party-token-movil"></div>
+                </div>
+
+                <div class="mobile-controls">
+                    <div class="btn-group">
+                        <button onclick="moverTablero('N')" class="btn btn-secondary btn-sm">↑</button>
+                        <button onclick="moverTablero('O')" class="btn btn-secondary btn-sm">←</button>
+                        <button onclick="moverTablero('S')" class="btn btn-secondary btn-sm">↓</button>
+                        <button onclick="moverTablero('E')" class="btn btn-secondary btn-sm">→</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
         <div class="tab-pane fade panel" id="tab-players">
             <ul id="lista-jugadores-movil" class="list-group small"></ul>
         </div>
         <div class="tab-pane fade panel" id="tab-events">
-             <div id="eventos-movil" class="event-log small" style="max-height:200px; overflow-y:auto;"></div>
+            <div id="eventos-movil" class="event-log small" style="max-height:200px; overflow-y:auto;"></div>
         </div>
         <div class="tab-pane fade panel" id="tab-chat">
             <div id="chat-box-movil" class="chat-box small flex-grow-1"></div>
@@ -103,10 +169,13 @@
         </div>
         <div class="tab-pane fade panel" id="tab-actions">
             <div class="d-grid gap-1">
-                <button class="action-button" id="btn-iniciar-aventura-movil">▶ INICIAR AVENTURA</button>
-                <button class="action-button">Atacar</button>
-                <button class="action-button action-equipo">Equipo</button>
-                <button class="action-button action-inventario">Inventario</button>
+                    <button class="action-button" id="btn-iniciar-aventura">▶ INICIAR AVENTURA</button>
+                    <button class="action-button">Atacar</button>
+                    <button class="action-button">Habilidades</button>
+                    <button class="action-button">Objeto</button>
+                    <button class="action-button">Dialogar</button>
+                    <button class="action-button action-equipo">Equipo</button>
+                    <button class="action-button action-inventario">Inventario</button>
             </div>
         </div>
     </div>
@@ -130,11 +199,125 @@
 
     <script>
         const ID_PARTIDA = parseInt("{{ partida.id | default(0) }}", 10);
-        const ID_PERSONAJE = parseInt("{{ id_personaje | default(0) }}", 10); 
+        const ID_PERSONAJE = parseInt("{{ id_personaje | default(0) }}", 10);
         const USER_ID = parseInt("{{ id_usuario | default(0) }}", 10);
-        
-        let socket; 
+
+        let socket;
         let modalPersonaje = null;
+
+        //-------------------------------------------------------
+        // TABLERO VISUAL – Grid de 15x15
+        //-------------------------------------------------------
+
+        let tableroX = 0;
+        let tableroY = 0;
+
+        let visualX = 7;
+        let visualY = 7;
+
+        // cargar posiciones desde el backend al entrar al tablero
+        async function cargarPosicionTablero() {
+            try {
+                const res = await fetch(`/api/tablero/posicion/${ID_PARTIDA}`);
+                const data = await res.json();
+
+                tableroX = data.x;
+                tableroY = data.y;
+
+                actualizarToken();
+            } catch (e) {
+                console.error("Error al cargar posición tablero:", e);
+            }
+        }
+
+
+        // actualizar posición visual del token
+        function actualizarToken() {
+            // PC
+            const tokenPC = document.getElementById("party-token");
+            const gridPC = document.getElementById("tablero-grid");
+
+            const cellWidthPC = gridPC.clientWidth / 15;
+            const cellHeightPC = gridPC.clientHeight / 15;
+
+            tokenPC.style.left = `${visualX * cellWidthPC}px`;
+            tokenPC.style.top = `${visualY * cellHeightPC}px`;
+
+            // MOVIL
+            const tokenMovil = document.getElementById("party-token-movil");
+            const gridMovil = document.getElementById("tablero-grid-movil");
+
+            if (tokenMovil && gridMovil) {
+                const cellWidthMov = gridMovil.clientWidth / 15;
+                const cellHeightMov = gridMovil.clientHeight / 15;
+
+                tokenMovil.style.left = `${visualX * cellWidthMov}px`;
+                tokenMovil.style.top = `${visualY * cellHeightMov}px`;
+            }
+        }
+
+
+
+        // mover 
+        async function moverTablero(dir) {
+
+            // Siempre en el centro del tablero visual
+            visualX = 7;
+            visualY = 7;
+            actualizarToken();
+
+            // Cambiar la posición REAL
+            if (dir === "E") tableroX++;
+            if (dir === "O") tableroX--;
+            if (dir === "N") tableroY++;
+            if (dir === "S") tableroY--;
+
+            try {
+                await fetch("/api/tablero/mover", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        id_partida: ID_PARTIDA,
+                        x: tableroX,
+                        y: tableroY
+                    })
+                });
+
+                agregarEvento(`<strong>El grupo se movió a:</strong> (${tableroX}, ${tableroY})`);
+
+            } catch (err) {
+                console.error("Error moviendo tablero:", err);
+            }
+        }
+
+
+        function crearGrid() {
+            const gridPC = document.getElementById("tablero-grid");
+            const gridMovil = document.getElementById("tablero-grid-movil");
+
+            gridPC.querySelectorAll(".celda").forEach(c => c.remove());
+            gridMovil.querySelectorAll(".celda").forEach(c => c.remove());
+
+            for (let i = 0; i < 225; i++) {
+                const cellPC = document.createElement("div");
+                cellPC.className = "celda";
+                gridPC.appendChild(cellPC);
+
+                const cellMovil = document.createElement("div");
+                cellMovil.className = "celda";
+                gridMovil.appendChild(cellMovil);
+            }
+
+            const tokenPC = document.getElementById("party-token");
+            const tokenMovil = document.getElementById("party-token-movil");
+
+            if (tokenPC && !gridPC.contains(tokenPC)) gridPC.appendChild(tokenPC);
+            if (tokenMovil && !gridMovil.contains(tokenMovil)) gridMovil.appendChild(tokenMovil);
+        }
+
+
+
+
 
         // Elementos DOM
         const chatBoxPC = document.getElementById('chat-box-pc');
@@ -143,19 +326,19 @@
         const tableroPC = document.getElementById('tablero-container');
         const eventLogBox = document.getElementById('event-log-box');
         const btnIniciarPC = document.getElementById('btn-iniciar-aventura');
-        
+
         const chatBoxMovil = document.getElementById('chat-box-movil');
         const inputMsgMovil = document.getElementById('chat-input-movil');
         const btnSendMovil = document.getElementById('chat-send-btn-movil');
-        const tableroMovil = document.getElementById('tablero-container-movil');
+        const tableroMovil = document.getElementById('tablero-wrapper-movil');
         const eventLogMovil = document.getElementById('eventos-movil');
         const btnIniciarMovil = document.getElementById('btn-iniciar-aventura-movil');
 
         document.addEventListener('DOMContentLoaded', () => {
-            
+
             if (ID_PARTIDA === 0 || ID_PERSONAJE === 0 || USER_ID === 0) {
-                 console.error("Error: Falta ID_PARTIDA, ID_PERSONAJE o USER_ID.");
-                 return;
+                console.error("Error: Falta ID_PARTIDA, ID_PERSONAJE o USER_ID.");
+                return;
             }
 
             socket = io("http://127.0.0.1:5000", { transports: ['websocket'], withCredentials: true });
@@ -163,6 +346,8 @@
             cargarJugadores();
             cargarHistorialChat();
             cargarHistorialEventos();
+            crearGrid();
+            cargarPosicionTablero();
 
             // --- Listeners Chat ---
             if (btnSendPC) btnSendPC.addEventListener("click", enviarMensaje);
@@ -222,10 +407,10 @@
                 ocultarBotonInicio();
             });
             socket.on("tablero_code", data => {
-                if(data.codigo) actualizarTablero(data.codigo, true);
+                if (data.codigo) actualizarTablero(data.codigo, true);
             });
-             socket.on("mapa_nuevo", data => {
-                 if (data.url_imagen) actualizarTablero(`<img src="${data.url_imagen}" style="width:100%;height:100%;object-fit:contain;">`, true);
+            socket.on("mapa_nuevo", data => {
+                if (data.url_imagen) actualizarTablero(`<img src="${data.url_imagen}" style="width:100%;height:100%;object-fit:contain;">`, true);
             });
 
         }); // FIN DOMContentLoaded
@@ -238,17 +423,42 @@
         }
 
         function agregarMensaje(txt, tipo) {
-            const p = document.createElement("p"); p.className = tipo; p.textContent = txt;
-            if(chatBoxPC) { chatBoxPC.appendChild(p); chatBoxPC.scrollTop = chatBoxPC.scrollHeight; }
+            const pPC = document.createElement("p");
+            pPC.className = tipo;
+            pPC.textContent = txt;
+
+            const pMovil = pPC.cloneNode(true);
+
+            // PC
+            if (chatBoxPC) {
+                chatBoxPC.appendChild(pPC);
+                chatBoxPC.scrollTop = chatBoxPC.scrollHeight;
+            }
+
+            // MOVIL
+            if (chatBoxMovil) {
+                chatBoxMovil.appendChild(pMovil);
+                chatBoxMovil.scrollTop = chatBoxMovil.scrollHeight;
+            }
         }
-        
+
+
         function agregarEvento(html) {
-            const p1 = document.createElement("p"); p1.innerHTML = html;
-            if(eventLogBox) { eventLogBox.appendChild(p1); eventLogBox.scrollTop = eventLogBox.scrollHeight; }
+            const p = document.createElement("p");
+            p.innerHTML = html;
+
+            if (eventLogBox) {
+                eventLogBox.appendChild(p.cloneNode(true));
+                eventLogBox.scrollTop = eventLogBox.scrollHeight;
+            }
+            if (eventLogMovil) {
+                eventLogMovil.appendChild(p.cloneNode(true));
+                eventLogMovil.scrollTop = eventLogMovil.scrollHeight;
+            }
         }
 
         function actualizarTablero(content, isHtml) {
-            if(tableroPC) {
+            if (tableroPC) {
                 tableroPC.innerHTML = isHtml ? content : `<span>${content}</span>`;
                 tableroPC.style.background = isHtml ? 'none' : '#ddd';
             }
@@ -262,12 +472,12 @@
                 const msgs = await res.json();
                 if (!msgs || !msgs.length) return;
                 msgs.forEach(m => {
-                    if(String(m.id_usuario) !== "101") {
-                         const tipo = (String(m.id_usuario) === String(USER_ID)) ? "propio" : "normal";
-                         agregarMensaje(`${m.username}: ${m.mensaje}`, tipo);
+                    if (String(m.id_usuario) !== "101") {
+                        const tipo = (String(m.id_usuario) === String(USER_ID)) ? "propio" : "normal";
+                        agregarMensaje(`${m.username}: ${m.mensaje}`, tipo);
                     }
                 });
-            } catch(e) {}
+            } catch (e) { }
         }
 
         async function cargarHistorialEventos() {
@@ -278,22 +488,30 @@
                     ocultarBotonInicio();
                     evts.forEach(e => agregarEvento(`<strong>DM Gema:</strong> ${e.descripcion}`));
                 }
-            } catch(e) {}
+            } catch (e) { }
         }
 
         async function cargarJugadores() {
             try {
                 const res = await fetch(`/api/partidas/jugadores/${ID_PARTIDA}`);
                 const j = await res.json();
-                const ul = document.getElementById("lista-jugadores");
-                ul.innerHTML = "";
-                j.forEach(p => ul.innerHTML += `<li class="list-group-item py-1">${p.personaje} (${p.clase})</li>`);
-            } catch (err) {}
+                const ulPC = document.getElementById("lista-jugadores");
+                const ulMovil = document.getElementById("lista-jugadores-movil");
+                ulPC.innerHTML = "";
+                ulMovil.innerHTML = "";
+                j.forEach(p => {
+                    const li = `<li class="list-group-item py-1">${p.personaje} (${p.clase})</li>`;
+                    ulPC.innerHTML += li;
+                    ulMovil.innerHTML += li;
+                });
+            } catch (err) { }
         }
 
         function enviarMensaje() {
-            const inp = inputMsgPC;
-            if(!inp.value.trim()) return;
+            const inp = inputMsgPC?.value.trim()
+                ? inputMsgPC
+                : inputMsgMovil;
+            if (!inp.value.trim()) return;
             socket.emit("send_message", { id_partida: ID_PARTIDA, id_personaje: ID_PERSONAJE, mensaje: inp.value.trim() });
             inp.value = "";
         }
@@ -323,7 +541,7 @@
             abrirModalInfoBase();
             await cargarModalInfo(`/api/partidas/inventario/${ID_PERSONAJE}`, "Inventario", "inventario");
         }
-        
+
         async function cargarModalInfo(url, titulo, tipo) {
             document.getElementById("modalTitle").textContent = titulo;
             const body = document.getElementById("modalBody");
@@ -345,7 +563,7 @@
                     const nombre = i.NOMBRE_OBJETO || i.NOMBRE || i.nombre || "Objeto";
                     const cant = i.CANTIDAD || 1;
                     const idObj = Number(i.ID_EQUIPO || i.ID_INSTANCIA_OBJETO || 0); // Asegúrate de tener el ID único
-                    
+
                     // Botón según tipo
                     let btnHtml = "";
                     if (tipo === "equipo") {
@@ -375,29 +593,30 @@
 
         // Definir función globalmente para que el HTML inyectado pueda llamarla
         window.manejarEquipar = async (vistaActual, idObjeto, accion) => {
-             const url = accion === "equipar" ? "/api/partidas/equipo/equipar" : "/api/partidas/equipo/desequipar";
-             
-             try {
-                 const resp = await fetch(url, {
-                     method: "POST", 
-                     headers: {"Content-Type": "application/json"},
-                     body: JSON.stringify({
-                         id_personaje: Number(ID_PERSONAJE), 
-                         id_objeto: Number(idObjeto)
-                     })
-                 });
-                 
-                 if (!resp.ok) throw new Error("Error en la acción");
-                 
-                 // Recargar la vista actual para ver el cambio
-                 if(vistaActual === "equipo") cargarEquipo(); 
-                 else cargarInventario();
+            const url = accion === "equipar" ? "/api/partidas/equipo/equipar" : "/api/partidas/equipo/desequipar";
 
-             } catch (err) {
-                 Swal.fire({ title: "Error", text: "No se pudo realizar la acción", icon: "error" });
-             }
+            try {
+                const resp = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        id_personaje: Number(ID_PERSONAJE),
+                        id_objeto: Number(idObjeto)
+                    })
+                });
+
+                if (!resp.ok) throw new Error("Error en la acción");
+
+                // Recargar la vista actual para ver el cambio
+                if (vistaActual === "equipo") cargarEquipo();
+                else cargarInventario();
+
+            } catch (err) {
+                Swal.fire({ title: "Error", text: "No se pudo realizar la acción", icon: "error" });
+            }
         };
 
     </script>
 </body>
+
 </html>

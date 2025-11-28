@@ -118,15 +118,11 @@ def obtener_contexto_combate(id_partida):
     return info_texto
 
 def insertar_monstruos_db(id_partida, lista_ids, lista_x, lista_y):
-    """
-    Inserta monstruos mediante SQL directo para evitar errores de Arrays en PL/SQL.
-    Incluye lógica anti-colisión para no spawnear encima del jugador (7,7).
-    """
     if APP_INSTANCE is None: return
     try:
         with pool.acquire() as conn:
             with conn.cursor() as cursor:
-                # 1. ID Encuentro Activo
+                # 1. Obtener el ID del encuentro activo de la partida
                 cursor.execute("SELECT MAX(id_encuentro) FROM encuentro WHERE id_partida = :1", [id_partida])
                 row = cursor.fetchone()
                 if not row or row[0] is None:
@@ -134,31 +130,39 @@ def insertar_monstruos_db(id_partida, lista_ids, lista_x, lista_y):
                     return
                 id_encuentro = row[0]
 
-                # 2. Insertar (SQL Directo con estado VIVO)
+                # 2. SQL DE INSERCIÓN INTELIGENTE
+                # Aquí ocurre la magia: Le decimos a la base de datos:
+                # "Busca en la tabla MONSTRUO (m) y copia su vida máxima a la vida actual"
+                # NO usamos la columna 'estado' porque tu tabla no la tiene.
                 sql = """
-                    INSERT INTO encuentro_monstruo (id_encuentro, id_monstruo, puntos_vida_actual, x, y, estado)
-                    SELECT :id_enc, m.id_monstruo, m.puntos_vida_maximo, :pos_x, :pos_y, 'VIVO'
+                    INSERT INTO encuentro_monstruo (id_encuentro, id_monstruo, puntos_vida_actual, x, y)
+                    SELECT :id_enc, m.id_monstruo, m.puntos_vida_maximo, :pos_x, :pos_y
                     FROM monstruo m
                     WHERE m.id_monstruo = :id_mon
                 """
+                
                 datos = []
                 for i in range(len(lista_ids)):
-                    # Clamp coordenadas (0-14)
+                    # Coordenadas seguras (0-14)
                     sx = max(0, min(14, lista_x[i]))
                     sy = max(0, min(14, lista_y[i]))
                     
-                    # Anti-colisión básica con jugador en 7,7
-                    if sx == 7 and sy == 7:
-                        sx = 6 # Mover a la izquierda
+                    # Lógica Anti-colisión: Si cae en el jugador (7,7), muévelo
+                    if sx == 7 and sy == 7: 
+                        sx = 6
                     
                     datos.append({
-                        "id_enc": id_encuentro, "id_mon": lista_ids[i],
-                        "pos_x": sx, "pos_y": sy
+                        "id_enc": id_encuentro, 
+                        "id_mon": lista_ids[i],
+                        "pos_x": sx, 
+                        "pos_y": sy
                     })
                 
+                # Ejecutar inserción masiva
                 cursor.executemany(sql, datos)
                 conn.commit()
-                print(f"✅ {len(lista_ids)} Monstruos insertados.")
+                print(f"✅ {len(lista_ids)} Monstruos insertados correctamente con sus estadísticas.")
+
     except Exception as e:
         print(f"❌ Error insertando monstruos: {e}")
 

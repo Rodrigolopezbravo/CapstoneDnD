@@ -5,29 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Partida D&D - {{ partida.nombre }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/partida.css') }}?v=6">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/partida.css') }}?v=8">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        #tablero-wrapper, #tablero-wrapper-movil {
+            height: 350px !important; /* Forzamos altura fija */
+            width: 100%; 
+            aspect-ratio: 1/1;
+            background: #bbb;
+            margin: 0 auto;
+        }
+        .event-log { min-height: 100px; flex-grow: 1; }
+        .chat-box { height: 100%; flex-grow: 1; min-height: 200px; }
+        
+        /* Mobile adjustments */
+        @media(max-width:768px){
+            #tablero-wrapper-movil { width: 95%; height: auto !important; max-width: 400px; }
+        }
+    </style>
 </head>
 <body class="container-fluid py-2">
 
     <div class="text-center mb-2" style="height: 35px;">
-        <h5 class="m-0">⚔️ {{ partida.nombre }} <small style="font-size:0.8rem; color:#aaa;">(Cod: <span id="codigoPartida">{{ partida.codigo }}</span>)</small> <button class="copy-btn" onclick="copiarCodigo()">Copiar</button></h5>
+        <h5 class="m-0 text-white">⚔️ {{ partida.nombre }} <small style="font-size:0.8rem; color:#aaa;">(Cod: <span id="codigoPartida">{{ partida.codigo }}</span>)</small> <button class="copy-btn" onclick="copiarCodigo()">Copiar</button></h5>
     </div>
 
     <ul class="nav nav-tabs d-md-none" id="partidaTabs">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-board">Tablero</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-players">Jugadores</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-events">Eventos</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-chat">Chat</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-actions">Acciones</button></li>
     </ul>
 
-    <div class="row d-none d-md-flex g-2 align-items-stretch" style="height: calc(100vh - 60px);">
+    <div class="row d-none d-md-flex g-2 align-items-stretch" style="height: calc(100vh - 55px);">
         
-        <div class="col-md-2 d-flex flex-column h-100">
+        <div class="col-md-2 d-flex flex-column">
             <div class="panel panel-grow">
                 <h6 class="panel-title">Jugadores</h6>
-                <ul id="lista-jugadores" class="list-group list-group-flush small" style="overflow-y:auto; flex-grow:1;"></ul>
+                <ul id="lista-jugadores" class="list-group list-group-flush small" style="overflow-y:auto; flex-grow:1; padding:0;"></ul>
             </div>
         </div>
 
@@ -48,23 +63,22 @@
             </div>
             <div class="panel panel-grow">
                 <h6 class="panel-title">Narración</h6>
-                <div id="event-log-box" class="event-log"></div>
+                <div id="event-log-box" class="event-log small"></div>
             </div>
         </div>
 
         <div class="col-md-3 d-flex flex-column h-100">
             <div class="panel panel-grow mb-2">
                 <h6 class="panel-title">Chat</h6>
-                <div id="chat-box-pc" class="chat-box"></div>
+                <div id="chat-box-pc" class="chat-box small"></div>
                 <div class="input-group mt-2 input-group-sm flex-shrink-0">
-                    <input id="chat-input-pc" type="text" class="form-control" placeholder="...">
-                    <button id="chat-send-btn-pc" class="btn btn-primary">➤</button>
+                    <input id="chat-input-pc" type="text" class="form-control form-control-sm" placeholder="...">
+                    <button id="chat-send-btn-pc" class="btn btn-primary btn-sm">➤</button>
                 </div>
             </div>
-            
             <div class="panel panel-fixed">
                 <h6 class="panel-title">Acciones</h6>
-                <div class="d-grid gap-1">
+                <div class="d-grid gap-1" style="overflow-y: auto; max-height: 250px;">
                     <button class="action-button" id="btn-iniciar-aventura">▶ INICIAR AVENTURA</button>
                     <button class="action-button btn-danger" onclick="atacarObjetivo()">⚔️ Atacar</button>
                     <button class="action-button" onclick="menuHabilidades()">Habilidades</button>
@@ -92,17 +106,17 @@
             <div class="input-group mt-2"><input id="chat-input-movil" class="form-control"><button id="chat-send-btn-movil" class="btn btn-primary">➤</button></div>
         </div>
         <div class="tab-pane fade panel" id="tab-actions">
-            <div class="d-grid gap-2">
+            <div class="d-grid gap-1 h-100" style="overflow-y: auto;">
                 <button class="action-button" id="btn-iniciar-aventura-movil">▶ INICIAR</button>
                 <button class="action-button btn-danger" onclick="atacarObjetivo()">Atacar</button>
                 <button class="action-button" onclick="menuHabilidades()">Habilidades</button>
                 <button class="action-button" onclick="menuObjetos()">Objeto</button>
+                <button class="action-button" onclick="dialogar()">Dialogar</button>
                 <button class="action-button action-equipo">Equipo</button>
                 <button class="action-button action-inventario">Inventario</button>
             </div>
         </div>
         <div class="tab-pane fade panel" id="tab-players"><ul id="lista-jugadores-movil" class="list-group small"></ul></div>
-        <div class="tab-pane fade panel" id="tab-events"><div id="eventos-movil-solo" class="event-log h-100"></div></div>
     </div>
 
     <div class="modal fade" id="modalInfoPersonaje" tabindex="-1">
@@ -127,25 +141,16 @@
             if (ID_PARTIDA === 0) return;
             socket = io(location.protocol + '//' + document.domain + ':' + location.port, { transports: ['websocket'], withCredentials: true });
 
-            crearGrid();
-            actualizarToken();
-            cargarJugadores();
-            cargarMonstruos();
-            cargarHistorialChat();
-            cargarHistorialEventos();
-            setupListeners();
-            setupSocketEvents();
-
+            crearGrid(); actualizarToken(); cargarJugadores(); cargarMonstruos(); 
+            cargarHistorialChat(); cargarHistorialEventos();
+            setupListeners(); setupSocketEvents();
             window.addEventListener('resize', () => { actualizarToken(); dibujarMonstruos(); });
         });
 
-        // --- GRID Y TOKENS ---
         function crearGrid() {
             const g1 = document.getElementById("tablero-grid"), g2 = document.getElementById("tablero-grid-movil");
             g1.innerHTML = '<div id="party-token"></div>'; g2.innerHTML = '<div id="party-token-movil"></div>';
-            for (let i = 0; i < 225; i++) {
-                const c = document.createElement("div"); c.className = "celda"; g1.appendChild(c); g2.appendChild(c.cloneNode(true));
-            }
+            for (let i = 0; i < 225; i++) { const c = document.createElement("div"); c.className = "celda"; g1.appendChild(c); g2.appendChild(c.cloneNode(true)); }
         }
 
         function actualizarToken() {
@@ -183,11 +188,46 @@
         async function confirmarAtaque(idM, nom) {
             Swal.fire({title:`¿Atacar a ${nom}?`, icon:'warning', showCancelButton:true, confirmButtonColor:'#d33', confirmButtonText:'¡Golpear!'}).then(async r=>{
                 if(r.isConfirmed) {
-                    try { 
-                        await fetch('/api/partidas/accion/atacar', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id_personaje:ID_PERSONAJE, id_partida:ID_PARTIDA, id_objetivo:idM})}); 
-                    } catch(e) { Swal.fire('Error', 'Fallo', 'error'); }
+                    // Enviar ID del Monstruo (ROWID)
+                    await fetch('/api/partidas/accion/atacar', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id_personaje:ID_PERSONAJE, id_partida:ID_PARTIDA, id_objetivo:idM})});
                 }
             });
+        }
+
+        async function atacarObjetivo() {
+            Swal.fire({title:'Atacar', text:"¿Atacar sin objetivo?", icon:'question', showCancelButton:true, confirmButtonText:'¡Sí!'}).then(async r=>{
+                if(r.isConfirmed) {
+                    await fetch('/api/partidas/accion/atacar', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id_personaje:ID_PERSONAJE, id_partida:ID_PARTIDA})});
+                }
+            });
+        }
+
+        function dialogar() { 
+            Swal.fire({title:'Hablar / Actuar', input:'textarea', showCancelButton:true, confirmButtonText:'Enviar', confirmButtonColor:'#d4af37'}).then(res => {
+                if (res.value) socket.emit("send_message", { id_partida: ID_PARTIDA, id_personaje: ID_PERSONAJE, mensaje: "@evento " + res.value });
+            });
+        }
+
+        async function menuHabilidades() {
+            try {
+                const r = await fetch(`/api/partidas/accion/habilidades/${ID_PERSONAJE}`);
+                const skills = await r.json();
+                if(!skills.length) return Swal.fire('Sin Habilidades', 'Nada disponible', 'info');
+                const opts = {}; skills.forEach(s=>opts[s.id]=s.nombre);
+                const {value:id} = await Swal.fire({title:'Usar Habilidad', input:'select', inputOptions:opts, showCancelButton:true});
+                if(id) await fetch('/api/partidas/accion/habilidad', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id_personaje:ID_PERSONAJE, id_habilidad:id, id_partida:ID_PARTIDA})});
+            } catch(e) {}
+        }
+
+        async function menuObjetos() {
+            try {
+                const r = await fetch(`/api/partidas/accion/consumibles/${ID_PERSONAJE}`);
+                const items = await r.json();
+                if(!items.length) return Swal.fire('Mochila', 'Sin pociones', 'info');
+                const opts = {}; items.forEach(i=>opts[i.id]=`${i.nombre} (x${i.cantidad})`);
+                const {value:id} = await Swal.fire({title:'Usar Objeto', input:'select', inputOptions:opts, showCancelButton:true});
+                if(id) await fetch('/api/partidas/accion/pocion', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id_personaje:ID_PERSONAJE, id_objeto:id, id_partida:ID_PARTIDA})});
+            } catch(e) {}
         }
 
         async function cargarMonstruos() { try{ const r=await fetch(`/api/partidas/tablero/monstruos/${ID_PARTIDA}`); if(r.ok){listaMonstruos=await r.json(); dibujarMonstruos();} }catch{} }
@@ -196,19 +236,7 @@
             try{ const r=await fetch(`/api/partidas/jugadores/${ID_PARTIDA}`); const j=await r.json(); 
             const h = j.map(p=> {
                 let color = p.porcentaje < 30 ? "bg-danger" : (p.porcentaje < 60 ? "bg-warning" : "bg-success");
-                return `
-                <li class="list-group-item player-card">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="player-name">${p.personaje}</span>
-                        <span class="badge player-badge">${p.clase}</span>
-                    </div>
-                    <div class="progress" style="height: 8px; background-color: #222; border: 1px solid #555;">
-                        <div class="progress-bar ${color}" style="width:${p.porcentaje}%"></div>
-                    </div>
-                    <div class="text-end mt-1">
-                        <span class="hp-text">${p.hp_actual} / ${p.hp_max} HP</span>
-                    </div>
-                </li>`;
+                return `<li class="list-group-item player-card"><div class="d-flex justify-content-between align-items-center mb-1"><span class="player-name">${p.personaje}</span><span class="badge player-badge">${p.clase}</span></div><div class="progress" style="height:8px; background-color:#222; border:1px solid #555;"><div class="progress-bar ${color}" style="width:${p.porcentaje}%"></div></div><div class="text-end mt-1"><span class="hp-text">${p.hp_actual} / ${p.hp_max} HP</span></div></li>`;
             }).join('');
             document.getElementById("lista-jugadores").innerHTML=h; document.getElementById("lista-jugadores-movil").innerHTML=h;
             }catch{} 
@@ -243,66 +271,6 @@
             document.querySelectorAll(".action-inventario").forEach(b=>b.onclick=()=>loadItems("inventario"));
             const btnIni = document.getElementById("btn-iniciar-aventura");
             if(btnIni) btnIni.onclick = () => Swal.fire({title:'¿Iniciar?', showCancelButton:true}).then(r=>{if(r.isConfirmed){socket.emit("send_message", {id_partida:ID_PARTIDA, id_personaje:ID_PERSONAJE, mensaje:"@iniciar"});}});
-        }
-
-        async function atacarObjetivo() {
-            Swal.fire({title:'Atacar', text:"¿Atacar a un objetivo?", icon:'question', showCancelButton:true, confirmButtonText:'¡Sí!'}).then(async r=>{
-                if(r.isConfirmed) {
-                    await fetch('/api/partidas/accion/atacar', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id_personaje:ID_PERSONAJE, id_partida:ID_PARTIDA})});
-                }
-            });
-        }
-
-        async function menuHabilidades() {
-            try {
-                const r = await fetch(`/api/partidas/accion/habilidades/${ID_PERSONAJE}`);
-                const skills = await r.json();
-                if(!skills.length) return Swal.fire('Sin Habilidades', 'Nada disponible', 'info');
-                const opts = {}; skills.forEach(s=>opts[s.id]=s.nombre);
-                const {value:id} = await Swal.fire({title:'Usar Habilidad', input:'select', inputOptions:opts, showCancelButton:true});
-                if(id) await fetch('/api/partidas/accion/habilidad', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id_personaje:ID_PERSONAJE, id_habilidad:id, id_partida:ID_PARTIDA})});
-            } catch(e) {}
-        }
-
-        async function menuObjetos() {
-            try {
-                const r = await fetch(`/api/partidas/accion/consumibles/${ID_PERSONAJE}`);
-                const items = await r.json();
-                if(!items.length) return Swal.fire('Mochila', 'Sin pociones', 'info');
-                const opts = {}; items.forEach(i=>opts[i.id]=`${i.nombre} (x${i.cantidad})`);
-                const {value:id} = await Swal.fire({title:'Usar Objeto', input:'select', inputOptions:opts, showCancelButton:true});
-                if(id) await fetch('/api/partidas/accion/pocion', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id_personaje:ID_PERSONAJE, id_objeto:id, id_partida:ID_PARTIDA})});
-            } catch(e) {}
-        }
-
-        // --- FUNCIÓN DIALOGAR MEJORADA ---
-        async function dialogar() {
-            const { value: texto } = await Swal.fire({
-                title: 'Hablar / Actuar',
-                input: 'textarea',
-                inputLabel: 'Describe qué dices o haces:',
-                inputPlaceholder: 'Ej: "Saludo al rey con una reverencia" o "Intento abrir el cofre"',
-                inputAttributes: {
-                    'aria-label': 'Escribe tu mensaje aquí'
-                },
-                showCancelButton: true,
-                confirmButtonText: 'Enviar a DM Gema',
-                confirmButtonColor: '#d4af37' // Color dorado
-            });
-
-            if (texto) {
-                // Agregamos el prefijo "@evento " automáticamente
-                // Esto le dice a tu chat.py que es un mensaje para la IA
-                socket.emit("send_message", {
-                    id_partida: ID_PARTIDA,
-                    id_personaje: ID_PERSONAJE,
-                    mensaje: "@evento " + texto 
-                });
-                
-                // Feedback visual
-                const Toast = Swal.mixin({toast: true, position: 'top-end', showConfirmButton: false, timer: 3000});
-                Toast.fire({ icon: 'info', title: 'Mensaje enviado a la IA...' });
-            }
         }
 
         async function loadItems(t) {

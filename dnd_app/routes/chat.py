@@ -89,10 +89,9 @@ def guardar_mensaje_ia_en_db(id_partida, mensaje_ia):
     except Exception as e:
         if app: app.logger.error(f"Error DB msg IA: {e}")
 
-# --- HELPERS MONSTRUOS (SQL DIRECTO PARA EVITAR ERRORES DE TIPO) ---
+# --- HELPERS MONSTRUOS (SQL DIRECTO) ---
 
 def obtener_contexto_combate(id_partida):
-    """Obtiene info para el prompt. Usa 2 argumentos (ID, CURSOR)."""
     if APP_INSTANCE is None: return ""
     info_texto = ""
     try:
@@ -122,18 +121,12 @@ def insertar_monstruos_db(id_partida, lista_ids, lista_x, lista_y):
     try:
         with pool.acquire() as conn:
             with conn.cursor() as cursor:
-                # 1. Obtener el ID del encuentro activo de la partida
                 cursor.execute("SELECT MAX(id_encuentro) FROM encuentro WHERE id_partida = :1", [id_partida])
                 row = cursor.fetchone()
-                if not row or row[0] is None:
-                    print("❌ Sin encuentro activo.")
-                    return
+                if not row or row[0] is None: return
                 id_encuentro = row[0]
 
-                # 2. SQL DE INSERCIÓN INTELIGENTE
-                # Aquí ocurre la magia: Le decimos a la base de datos:
-                # "Busca en la tabla MONSTRUO (m) y copia su vida máxima a la vida actual"
-                # NO usamos la columna 'estado' porque tu tabla no la tiene.
+                # SQL INSERCIÓN INTELIGENTE (SIN COLUMNA ESTADO PARA EVITAR ERROR)
                 sql = """
                     INSERT INTO encuentro_monstruo (id_encuentro, id_monstruo, puntos_vida_actual, x, y)
                     SELECT :id_enc, m.id_monstruo, m.puntos_vida_maximo, :pos_x, :pos_y
@@ -143,26 +136,18 @@ def insertar_monstruos_db(id_partida, lista_ids, lista_x, lista_y):
                 
                 datos = []
                 for i in range(len(lista_ids)):
-                    # Coordenadas seguras (0-14)
                     sx = max(0, min(14, lista_x[i]))
                     sy = max(0, min(14, lista_y[i]))
-                    
-                    # Lógica Anti-colisión: Si cae en el jugador (7,7), muévelo
-                    if sx == 7 and sy == 7: 
-                        sx = 6
+                    if sx == 7 and sy == 7: sx = 6 # Anti-colisión
                     
                     datos.append({
-                        "id_enc": id_encuentro, 
-                        "id_mon": lista_ids[i],
-                        "pos_x": sx, 
-                        "pos_y": sy
+                        "id_enc": id_encuentro, "id_mon": lista_ids[i],
+                        "pos_x": sx, "pos_y": sy
                     })
                 
-                # Ejecutar inserción masiva
                 cursor.executemany(sql, datos)
                 conn.commit()
-                print(f"✅ {len(lista_ids)} Monstruos insertados correctamente con sus estadísticas.")
-
+                print(f"✅ {len(lista_ids)} Monstruos insertados.")
     except Exception as e:
         print(f"❌ Error insertando monstruos: {e}")
 
@@ -265,7 +250,7 @@ def handle_send_message(data):
 # --- LOGICA IA ---
 
 def handle_iniciar_aventura_command(id_partida, user_id, room):
-    emit("nuevo_evento_ia", {"descripcion": "Iniciando... ⏳"}, room=room)
+    emit("nuevo_evento_ia", {"descripcion": "Iniciando aventura... ⏳"}, room=room)
     u = obtener_usuario(user_id)
     username = u["username"] if u else "Aventurero"
     socketio.start_background_task(run_inicio_aventura_ia, id_partida, room, username)
@@ -276,26 +261,20 @@ def run_inicio_aventura_ia(id_partida, room, username):
     with APP_INSTANCE.app_context():
         try:
             lista = ", ".join(ENTORNOS_PERMITIDOS)
-            
-            # --- PROMPT DE TÍTULO CREATIVO (CORREGIDO) ---
             prompt_setup = (
-                f"Actúa como un Dungeon Master experto creando una nueva aventura para un grupo de jugadores. "
-                f"1. Selecciona un entorno de esta lista: [{lista}]. "
-                f"2. Crea un TÍTULO creativo, misterioso y épico para este encuentro (Ejemplos: 'El Lamento de la Mina', 'Sombras en el Camino', 'La Taberna Maldita'). "
-                f"REGLAS: El título NO puede contener el nombre '{username}'. Debe ser genérico para cualquier grupo. "
-                f"RESPONDE SOLO CON ESTE FORMATO EXACTO: TITULO|ENTORNO"
+                f"Actúa como un Dungeon Master experto creando una nueva aventura. "
+                f"1. Selecciona un entorno de: [{lista}]. "
+                f"2. Crea un TÍTULO creativo y épico (NO uses el nombre '{username}' en el título). "
+                f"RESPONDE SOLO: TITULO|ENTORNO"
             )
-            
             resp_setup = gemini_model.generate_content(prompt_setup, safety_settings=dnd_safety_settings)
             texto_limpio = resp_setup.text.strip()
             
-            # Parsear
             if '|' in texto_limpio:
                 partes = texto_limpio.split('|')
                 nom = partes[0].strip()
                 ent = partes[1].strip()
             else:
-                # Fallback sin usar username
                 nom = "El Comienzo del Viaje"
                 ent = "Pueblo"
 
@@ -307,18 +286,15 @@ def run_inicio_aventura_ia(id_partida, room, username):
                     conn.commit()
 
             prompt_narr = (
-                f"System: La aventura comienza. El escenario es '{nom}' ubicado en un(a) {ent}. "
-                f"Narra una introducción inmersiva describiendo el ambiente, los sonidos y olores. "
-                f"El grupo (liderado por {username}) acaba de llegar. "
-                f"Si el lugar sugiere peligro, describe amenazas ocultas o monstruos acechando."
+                f"System: La aventura comienza en '{nom}' ({ent}). "
+                f"Narra una introducción inmersiva. El grupo acaba de llegar. "
+                f"Si el lugar sugiere peligro, describe amenazas o monstruos acechando."
             )
 
             if id_partida not in chat_histories: chat_histories[id_partida] = [{'role': 'user', 'parts': [SYSTEM_PROMPT]}]
             chat_histories[id_partida].append({'role': 'user', 'parts': [prompt_narr]})
-            
             run_gemini_request(id_partida, room)
-        except Exception as e: 
-            APP_INSTANCE.logger.error(f"Error IA: {e}")
+        except Exception as e: APP_INSTANCE.logger.error(f"Error IA: {e}")
 
 def handle_gemini_command(id_partida, user_id, mensaje, room):
     prompt = mensaje[len("@evento"):].strip()
@@ -332,7 +308,6 @@ def handle_nueva_escena_command(id_partida, user_id, params, room):
     nom = partes[0].strip() if len(partes)>0 else "Escena"
     ent = partes[1].strip() if len(partes)>1 else "General"
     emit("nuevo_evento_ia", {"descripcion": f"Viajando a: {nom}..."}, room=room)
-    
     try:
         with APP_INSTANCE.app_context():
             with pool.acquire() as conn:
@@ -341,29 +316,36 @@ def handle_nueva_escena_command(id_partida, user_id, params, room):
                     conn.commit()
     except Exception: pass
 
-    prompt = f"System: Jugadores en '{nom}' ({ent}). Narra. Si hay peligro, pon monstruos."
+    prompt = f"System: El grupo llega a '{nom}' ({ent}). Narra. Si hay peligro, pon monstruos."
     if id_partida in chat_histories: chat_histories[id_partida].append({'role': 'user', 'parts': [prompt]})
     socketio.start_background_task(run_gemini_request, id_partida, room)
     return True
 
-# --- FUNCIÓN DE IA VICTORIA (NUEVO) ---
-def run_gemini_victory(id_partida, room):
-    if APP_INSTANCE is None: return
+# --- FUNCIÓN QUE CONECTA CON PARTIDAS.PY (ESTO FALTABA) ---
+def trigger_post_combat(id_partida, room):
+    """
+    Llamada por partidas.py cuando se detecta 'COMBATE_FINALIZADO'.
+    Instruye a la IA a cerrar la escena y abrir una nueva.
+    """
+    if APP_INSTANCE is None or not gemini_model: return
     with APP_INSTANCE.app_context():
         try:
-            prompt_victory = (
-                "[SISTEMA]: El último enemigo ha caído. El combate ha terminado. "
-                "Narra el final de la batalla describiendo el silencio repentino, "
-                "el estado de los enemigos derrotados y pregunta a los jugadores qué quieren hacer ahora."
+            instr = (
+                "[SISTEMA]: ¡COMBATE FINALIZADO! Todos los enemigos han sido derrotados. "
+                "1. Narra épicamente la victoria y cómo recuperan el aliento.\n"
+                "2. Haz que el grupo avance inmediatamente hacia la siguiente zona.\n"
+                "3. IMPORTANTE: Genera una NUEVA ESCENA usando: [[NUEVA_ESCENA|Nombre|Tipo]].\n"
+                "4. Si la nueva escena es peligrosa, incluye JSON de monstruos."
             )
+            
             if id_partida in chat_histories:
-                chat_histories[id_partida].append({'role': 'user', 'parts': [prompt_victory]})
-                response = gemini_model.generate_content(chat_histories[id_partida], safety_settings=dnd_safety_settings)
-                txt = response.text
-                chat_histories[id_partida].append({'role': 'model', 'parts': [txt]})
-                guardar_mensaje_ia_en_db(id_partida, txt)
-                socketio.emit("nuevo_evento_ia", {"descripcion": txt}, room=room)
-        except Exception: pass
+                chat_histories[id_partida].append({'role': 'user', 'parts': [instr]})
+            
+            # Reutilizamos la lógica principal para que procese el tag [[NUEVA_ESCENA]] si la IA lo genera
+            run_gemini_request(id_partida, room)
+
+        except Exception as e:
+            APP_INSTANCE.logger.error(f"Error Post-Combate IA: {e}")
 
 def run_gemini_request(id_partida, room):
     if APP_INSTANCE is None or id_partida not in chat_histories: return
@@ -380,7 +362,7 @@ def run_gemini_request(id_partida, room):
             resp = gemini_model.generate_content(hist, safety_settings=dnd_safety_settings)
             txt = resp.text
             
-            # Parsear JSON
+            # 1. Procesar JSON (Monstruos)
             ini = txt.find("```json")
             if ini != -1:
                 fin = txt.find("```", ini+7)
@@ -393,17 +375,32 @@ def run_gemini_request(id_partida, room):
                             for m in d["monstruos"]:
                                 xs_int = int(m["x"])
                                 ys_int = int(m["y"])
-                                # Anti-colisión (7,7)
                                 if xs_int == 7 and ys_int == 7: xs_int = 6
                                 ids.append(int(m["id"]))
                                 xs.append(xs_int)
                                 ys.append(ys_int)
-                            
                             insertar_monstruos_db(id_partida, ids, xs, ys)
                     except Exception: pass
                     txt = txt[:ini].strip() + "\n" + txt[fin+3:].strip()
 
+            # 2. Procesar [[NUEVA_ESCENA]] (Generada por trigger_post_combat)
+            patron = r"\[\[NUEVA_ESCENA\|(.*?)\|(.*?)\]\]"
+            match = re.search(patron, txt)
+            if match:
+                n_escena = match.group(1).strip()
+                t_entorno = match.group(2).strip()
+                if t_entorno not in ENTORNOS_PERMITIDOS: t_entorno = "Ruina"
+                try:
+                    with pool.acquire() as conn:
+                        with conn.cursor() as cursor:
+                            cursor.callproc("pkg_partida.crear_encuentro", [id_partida, n_escena, t_entorno])
+                            conn.commit()
+                except: pass
+                # Limpiamos el tag del texto visible
+                txt = re.sub(patron, "", txt).strip()
+
             chat_histories[id_partida].append({'role': 'model', 'parts': [txt]})
             guardar_mensaje_ia_en_db(id_partida, txt)
             socketio.emit("nuevo_evento_ia", {"descripcion": txt}, room=room)
+
         except Exception as e: APP_INSTANCE.logger.error(f"Error IA: {e}")

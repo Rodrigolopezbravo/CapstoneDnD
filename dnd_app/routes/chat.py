@@ -5,22 +5,28 @@ from dnd_app import socketio
 from dnd_app.oracle_db import get_connection_pool
 import oracledb
 import os
+<<<<<<< HEAD
 import threading 
 
 # --- CONFIGURACIÓN DE IA Y CREDENCIALES ---
+=======
+import re 
+import json
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
 import google.generativeai as genai
-import base64
-from io import BytesIO
+
+# Referencia global
+APP_INSTANCE = None 
 
 # Referencia global a la instancia de la aplicación (INICIALMENTE NONE)
 # Se establecerá mediante setup_chat_module
 APP_INSTANCE = None 
 
 try:
-    from google.genai import client as VertexClient
-    from google.genai import types as VertexTypes
-    vertex_imports_ok = True
+    from dnd_app import walletcredentials 
+    SECRETS_API_KEY = getattr(walletcredentials, 'GEMINI_API_KEY_LOCAL', None)
 except ImportError:
+<<<<<<< HEAD
     vertex_imports_ok = False
     
 # Importamos el archivo de credenciales (Asumiendo dnd_app/walletcredentials.py)
@@ -35,6 +41,16 @@ except ImportError:
 ID_USUARIO_GEMINI = 0 
 NOMBRE_USUARIO_GEMINI = "DM Gema"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or SECRETS_API_KEY
+=======
+    SECRETS_API_KEY = None
+    print("ADVERTENCIA: No se pudo importar walletcredentials.")
+
+# Variables Globales
+ID_USUARIO_GEMINI = 101 
+NOMBRE_USUARIO_GEMINI = "DM Gema"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or SECRETS_API_KEY
+ENTORNOS_PERMITIDOS = ["Bosque", "Pueblo", "Ciudad", "Ruina", "Mazmorra", "Camino"]
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
 
 gemini_model = None
 chat_histories = {} 
@@ -53,16 +69,28 @@ dnd_safety_settings = [
     {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
 ]
+<<<<<<< HEAD
 SYSTEM_PROMPT = f"""
 Eres '{NOMBRE_USUARIO_GEMINI}', un Dungeon Master asistente para una partida de Dungeons and Dragons. 
 Tu rol es ayudar al DM y a los jugadores. Responde preguntas sobre reglas, describe escenarios o interpreta a NPCs. 
 El historial de chat incluye contexto. Responde siempre en español.
 """
 # --------------------------
+=======
+
+SYSTEM_PROMPT = f"""
+Eres '{NOMBRE_USUARIO_GEMINI}', un Dungeon Master asistente.
+Tu rol es narrar la historia y describir escenarios.
+REGLAS: Entornos válidos: {', '.join(ENTORNOS_PERMITIDOS)}.
+Si narras un cambio de escena, usa código oculto: [[NUEVA_ESCENA|Nombre|Tipo]].
+Responde en español.
+"""
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
 
 chat_bp = Blueprint("chat_api", __name__, url_prefix="/api/chat")
 pool = get_connection_pool() 
 
+<<<<<<< HEAD
 # --- FUNCIÓN AUXILIAR PARA GUARDAR MENSAJE DE LA IA ---
 
 def guardar_mensaje_ia_en_db(id_partida, mensaje_ia):
@@ -90,6 +118,14 @@ def setup_chat_module(app):
     print("Chat Module: Flask app instance almacenada para manejo de hilos.")
 
 # --- FUNCIONES AUXILIARES DE DB Y JWT ---
+=======
+# --- HELPERS GENERALES ---
+
+def setup_chat_module(app):
+    global APP_INSTANCE
+    APP_INSTANCE = app
+    print("Chat Module: Flask app instance almacenada.")
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
 
 def obtener_usuario(user_id):
     app = APP_INSTANCE or current_app
@@ -99,11 +135,16 @@ def obtener_usuario(user_id):
                 out = cursor.var(oracledb.DB_TYPE_CURSOR)
                 cursor.callproc("pkg_auth.obtener_usuario_por_id", [int(user_id), out])
                 row = out.getvalue().fetchone()
+<<<<<<< HEAD
                 if row:
                     return {"id": row[0], "username": row[1], "email": row[2]}
     except Exception:
         if app:
             app.logger.exception("Error obteniendo usuario")
+=======
+                if row: return {"id": row[0], "username": row[1], "email": row[2]}
+    except Exception: pass
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
     return None
 
 def get_current_user_id_or_none():
@@ -111,10 +152,86 @@ def get_current_user_id_or_none():
     try:
         verify_jwt_in_request(optional=True, locations=["cookies"])
         return get_jwt_identity()
+<<<<<<< HEAD
     except Exception: # Puede fallar si no hay contexto (fuera de request/socket)
         return None
+=======
+    except Exception: return None
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
 
-# --- RUTA HTTP (Historial con corrección LOB) ---
+def guardar_mensaje_ia_en_db(id_partida, mensaje_ia):
+    app = APP_INSTANCE or current_app
+    try:
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                cursor.callproc("pkg_partida.guardar_mensaje_dm", [id_partida, mensaje_ia])
+                conn.commit()
+    except Exception as e:
+        if app: app.logger.error(f"Error DB msg IA: {e}")
+
+# --- HELPERS MONSTRUOS (SQL DIRECTO) ---
+
+def obtener_contexto_combate(id_partida):
+    if APP_INSTANCE is None: return ""
+    info_texto = ""
+    try:
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                out_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
+                cursor.callproc("pkg_monstruos.info_partida_monstruos", [id_partida, out_cursor])
+                
+                jugadores_info = "Desconocido"
+                lista_monstruos = []
+                for row in out_cursor.getvalue():
+                    if jugadores_info == "Desconocido":
+                        jugadores_info = f"{row[0]} Jugadores (Niveles: {row[1]})"
+                    lista_monstruos.append(f"{{ID: {row[2]}, Nombre: '{row[3]}', CR: {row[4]}}}")
+
+                info_texto = (
+                    f"DATOS DE PARTIDA:\n- Grupo: {jugadores_info}\n"
+                    f"- Monstruos Disponibles: {', '.join(lista_monstruos)}\n"
+                )
+    except Exception as e:
+        print(f"⚠️ Error info monstruos: {e}")
+        return "Info: Grupo estándar."
+    return info_texto
+
+def insertar_monstruos_db(id_partida, lista_ids, lista_x, lista_y):
+    if APP_INSTANCE is None: return
+    try:
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT MAX(id_encuentro) FROM encuentro WHERE id_partida = :1", [id_partida])
+                row = cursor.fetchone()
+                if not row or row[0] is None: return
+                id_encuentro = row[0]
+
+                # SQL INSERCIÓN INTELIGENTE (SIN COLUMNA ESTADO PARA EVITAR ERROR)
+                sql = """
+                    INSERT INTO encuentro_monstruo (id_encuentro, id_monstruo, puntos_vida_actual, x, y)
+                    SELECT :id_enc, m.id_monstruo, m.puntos_vida_maximo, :pos_x, :pos_y
+                    FROM monstruo m
+                    WHERE m.id_monstruo = :id_mon
+                """
+                
+                datos = []
+                for i in range(len(lista_ids)):
+                    sx = max(0, min(14, lista_x[i]))
+                    sy = max(0, min(14, lista_y[i]))
+                    if sx == 7 and sy == 7: sx = 6 # Anti-colisión
+                    
+                    datos.append({
+                        "id_enc": id_encuentro, "id_mon": lista_ids[i],
+                        "pos_x": sx, "pos_y": sy
+                    })
+                
+                cursor.executemany(sql, datos)
+                conn.commit()
+                print(f"✅ {len(lista_ids)} Monstruos insertados.")
+    except Exception as e:
+        print(f"❌ Error insertando monstruos: {e}")
+
+# --- RUTAS HTTP ---
 
 @chat_bp.route("/partida/<int:id_partida>", methods=["GET"])
 def traer_historial(id_partida):
@@ -124,34 +241,40 @@ def traer_historial(id_partida):
             with conn.cursor() as cursor:
                 out = cursor.var(oracledb.DB_TYPE_CURSOR)
                 cursor.callproc("pkg_chat.traer_mensajes_partida", [id_partida, out])
-                
-                def read_data(value):
-                    if hasattr(value, 'read') and callable(value.read):
-                        return value.read()
-                    return value
-
+                def read_data(value): return value.read() if hasattr(value, 'read') else value
                 for row in out.getvalue():
                     mensajes.append({
-                        "id_mensaje": row[0],
-                        "id_partida": row[1],
-                        "id_usuario": row[2],
-                        "username": read_data(row[3]),
-                        "nombre_personaje": read_data(row[4]),
-                        "mensaje": read_data(row[5]),
-                        "fecha_envio": row[6].isoformat() if row[6] else None
+                        "id_mensaje": row[0], "id_partida": row[1], "id_usuario": str(row[2]),
+                        "username": read_data(row[3]), "nombre_personaje": read_data(row[4]),
+                        "mensaje": read_data(row[5]), "fecha_envio": row[6].isoformat() if row[6] else None
                     })
-                
         return jsonify(mensajes), 200
-    except Exception as e:
-        current_app.logger.exception("Error traer_historial")
-        return jsonify({"error": str(e)}), 500
+    except Exception as e: return jsonify({"error": str(e)}), 500
 
+@chat_bp.route("/eventos/<int:id_partida>", methods=["GET"])
+def traer_historial_eventos(id_partida):
+    eventos = []
+    try:
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                sql = """
+                    SELECT e.descripcion, e.fecha_evento 
+                    FROM evento e JOIN encuentro en ON e.id_encuentro = en.id_encuentro
+                    WHERE en.id_partida = :1 ORDER BY e.fecha_evento ASC
+                """
+                cursor.execute(sql, [id_partida])
+                def read_data(value): return value.read() if hasattr(value, 'read') else value
+                for row in cursor:
+                    eventos.append({"descripcion": read_data(row[0]), "fecha": row[1].isoformat() if row[1] else None})
+        return jsonify(eventos), 200
+    except Exception: return jsonify([]), 200
 
-# --- MANEJO DE SOCKET.IO ---
+# --- SOCKET IO ---
 
 @socketio.on("connect")
 def on_connect():
     user_id = get_current_user_id_or_none() 
+<<<<<<< HEAD
 
     if not user_id:
         current_app.logger.warning("Socket.IO: Conexión rechazada (No autenticado).")
@@ -160,74 +283,51 @@ def on_connect():
 
     g.user_id = user_id
     current_app.logger.info(f"Socket.IO: Cliente {user_id} conectado (SID: {request.sid})")
+=======
+    if not user_id: return disconnect()
+    g.user_id = user_id
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
     emit("connected", {"msg": "connected", "user_id": user_id})
-
 
 @socketio.on("join_partida")
 def handle_join_partida(data):
     try:
         user_id = getattr(g, 'user_id', get_current_user_id_or_none())
-        if not user_id:
-            emit("error", {"msg": "No autenticado. Reintente."})
-            return disconnect()
-
-        id_partida = int(data.get("id_partida")) if data.get("id_partida") else None
-        id_personaje = int(data.get("id_personaje")) if data.get("id_personaje") else None
-
-        if not id_partida or not id_personaje:
-            emit("error", {"msg": "Faltan id_partida o id_personaje."})
-            return
-
+        if not user_id: return disconnect()
+        id_partida = int(data.get("id_partida"))
         room = f"partida_{id_partida}"
         join_room(room)
+<<<<<<< HEAD
 
         if id_partida not in chat_histories:
             chat_histories[id_partida] = [{'role': 'user', 'parts': [SYSTEM_PROMPT]}]
 
+=======
+        if id_partida not in chat_histories: chat_histories[id_partida] = [{'role': 'user', 'parts': [SYSTEM_PROMPT]}]
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
         usuario = obtener_usuario(user_id)
         username = usuario["username"] if usuario else f"user_{user_id}"
-
+        emit("system", {"msg": f"{username} entró."}, room=room, skip_sid=request.sid)
         emit("joined", {"ok": True, "room": room})
-        emit("system", {"msg": f"{username} se unió a la partida."}, room=room, skip_sid=request.sid)
-
-    except Exception as e:
-        current_app.logger.exception("join_partida error")
-        emit("error", {"msg": str(e)})
-
+    except Exception as e: emit("error", {"msg": str(e)})
 
 @socketio.on("leave_partida")
 def handle_leave_partida(data):
     try:
         user_id = getattr(g, 'user_id', get_current_user_id_or_none())
-        if not user_id:
-            emit("error", {"msg": "No autenticado."})
-            return
-
         id_partida = int(data.get("id_partida"))
-        room = f"partida_{id_partida}"
-        leave_room(room)
-
-        usuario = obtener_usuario(user_id)
-        username = usuario["username"] if usuario else f"user_{user_id}"
-
+        leave_room(f"partida_{id_partida}")
         emit("left", {"ok": True})
-        emit("system", {"msg": f"{username} salió de la partida."}, room=room)
-    except Exception as e:
-        current_app.logger.exception("leave_partida error")
-        emit("error", {"msg": str(e)})
-
+    except Exception: pass
 
 @socketio.on("send_message")
 def handle_send_message(data):
     try:
         user_id = getattr(g, 'user_id', get_current_user_id_or_none()) 
-        if not user_id:
-            emit("error", {"msg": "No autenticado."})
-            return
-
         id_partida = int(data.get("id_partida"))
-        id_personaje = int(data.get("id_personaje")) if data.get("id_personaje") else None
+        id_personaje = int(data.get("id_personaje"))
         mensaje = data.get("mensaje", "").strip()
+<<<<<<< HEAD
 
         if not mensaje:
             emit("error", {"msg": "Mensaje vacío."})
@@ -263,27 +363,137 @@ def handle_send_message(data):
         if id_partida in chat_histories:
             nombre_chat = nombre_completo if nombre_completo else f"User {user_id}"
             chat_histories[id_partida].append({'role': 'user', 'parts': [f"{nombre_chat}: {mensaje}"]})
+=======
+        if not mensaje: return
+        room = f"partida_{id_partida}"
+        
+        if mensaje.lower().startswith("@iniciar"): return handle_iniciar_aventura_command(id_partida, user_id, room)
+        if mensaje.lower().startswith("@evento"): return handle_gemini_command(id_partida, user_id, mensaje, room)
+        if mensaje.lower().startswith("@nueva_escena"): return handle_nueva_escena_command(id_partida, user_id, mensaje[13:].strip(), room)
 
-    except oracledb.DatabaseError as db_e:
-        current_app.logger.exception("DB error sending message")
-        emit("error", {"msg": str(db_e)})
-    except Exception as e:
-        current_app.logger.exception("send_message error")
-        emit("error", {"msg": str(e)})
+        with pool.acquire() as conn:
+            with conn.cursor() as cursor:
+                nombre = cursor.callfunc("pkg_personaje.obtener_nombres_por_personaje", oracledb.STRING, [id_personaje])
+                cursor.callproc("pkg_chat.guardar_mensaje", [id_partida, int(user_id), mensaje])
+                conn.commit()
+        
+        emit("new_message", {"id_partida": id_partida, "id_usuario": str(user_id), "username": nombre, "mensaje": mensaje}, room=room)
+        if id_partida in chat_histories: chat_histories[id_partida].append({'role': 'user', 'parts': [f"{nombre}: {mensaje}"]})
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
 
+    except Exception: pass
 
-# --- FUNCIONES DE MANEJO DE COMANDOS DE IA ---
+# --- LOGICA IA ---
+
+def handle_iniciar_aventura_command(id_partida, user_id, room):
+    emit("nuevo_evento_ia", {"descripcion": "Iniciando aventura... ⏳"}, room=room)
+    u = obtener_usuario(user_id)
+    username = u["username"] if u else "Aventurero"
+    socketio.start_background_task(run_inicio_aventura_ia, id_partida, room, username)
+    return True
+
+def run_inicio_aventura_ia(id_partida, room, username):
+    if APP_INSTANCE is None or not gemini_model: return
+    with APP_INSTANCE.app_context():
+        try:
+            lista = ", ".join(ENTORNOS_PERMITIDOS)
+            prompt_setup = (
+                f"Actúa como un Dungeon Master experto creando una nueva aventura. "
+                f"1. Selecciona un entorno de: [{lista}]. "
+                f"2. Crea un TÍTULO creativo y épico (NO uses el nombre '{username}' en el título). "
+                f"RESPONDE SOLO: TITULO|ENTORNO"
+            )
+            resp_setup = gemini_model.generate_content(prompt_setup, safety_settings=dnd_safety_settings)
+            texto_limpio = resp_setup.text.strip()
+            
+            if '|' in texto_limpio:
+                partes = texto_limpio.split('|')
+                nom = partes[0].strip()
+                ent = partes[1].strip()
+            else:
+                nom = "El Comienzo del Viaje"
+                ent = "Pueblo"
+
+            if ent not in ENTORNOS_PERMITIDOS: ent = "Pueblo"
+
+            with pool.acquire() as conn:
+                with conn.cursor() as cursor:
+                    cursor.callproc("pkg_partida.crear_encuentro", [id_partida, nom, ent])
+                    conn.commit()
+
+            prompt_narr = (
+                f"System: La aventura comienza en '{nom}' ({ent}). "
+                f"Narra una introducción inmersiva. El grupo acaba de llegar. "
+                f"Si el lugar sugiere peligro, describe amenazas o monstruos acechando."
+            )
+
+            if id_partida not in chat_histories: chat_histories[id_partida] = [{'role': 'user', 'parts': [SYSTEM_PROMPT]}]
+            chat_histories[id_partida].append({'role': 'user', 'parts': [prompt_narr]})
+            run_gemini_request(id_partida, room)
+        except Exception as e: APP_INSTANCE.logger.error(f"Error IA: {e}")
 
 def handle_gemini_command(id_partida, user_id, mensaje, room):
+<<<<<<< HEAD
     if not gemini_model: return emit("error", {"msg": "IA de Chat no configurada."})
     prompt = mensaje[len("@dm"):].strip()
     if id_partida in chat_histories: chat_histories[id_partida].append({'role': 'user', 'parts': [f"User {user_id}: {prompt}"]})
     emit("new_message", {"username": NOMBRE_USUARIO_GEMINI, "mensaje": "... 💭"}, room=room)
     thread = threading.Thread(target=run_gemini_request, args=(id_partida, room))
     thread.start()
+=======
+    prompt = mensaje[len("@evento"):].strip()
+    if id_partida in chat_histories: chat_histories[id_partida].append({'role': 'user', 'parts': [f"User {user_id}: {prompt}"]})
+    emit("nuevo_evento_ia", {"descripcion": "... 💭"}, room=room)
+    socketio.start_background_task(run_gemini_request, id_partida, room)
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
     return True
 
+def handle_nueva_escena_command(id_partida, user_id, params, room):
+    partes = params.split('|')
+    nom = partes[0].strip() if len(partes)>0 else "Escena"
+    ent = partes[1].strip() if len(partes)>1 else "General"
+    emit("nuevo_evento_ia", {"descripcion": f"Viajando a: {nom}..."}, room=room)
+    try:
+        with APP_INSTANCE.app_context():
+            with pool.acquire() as conn:
+                with conn.cursor() as cursor:
+                    cursor.callproc("pkg_partida.crear_encuentro", [id_partida, nom, ent])
+                    conn.commit()
+    except Exception: pass
+
+    prompt = f"System: El grupo llega a '{nom}' ({ent}). Narra. Si hay peligro, pon monstruos."
+    if id_partida in chat_histories: chat_histories[id_partida].append({'role': 'user', 'parts': [prompt]})
+    socketio.start_background_task(run_gemini_request, id_partida, room)
+    return True
+
+# --- FUNCIÓN QUE CONECTA CON PARTIDAS.PY (ESTO FALTABA) ---
+def trigger_post_combat(id_partida, room):
+    """
+    Llamada por partidas.py cuando se detecta 'COMBATE_FINALIZADO'.
+    Instruye a la IA a cerrar la escena y abrir una nueva.
+    """
+    if APP_INSTANCE is None or not gemini_model: return
+    with APP_INSTANCE.app_context():
+        try:
+            instr = (
+                "[SISTEMA]: ¡COMBATE FINALIZADO! Todos los enemigos han sido derrotados. "
+                "1. Narra épicamente la victoria y cómo recuperan el aliento.\n"
+                "2. Haz que el grupo avance inmediatamente hacia la siguiente zona.\n"
+                "3. IMPORTANTE: Genera una NUEVA ESCENA usando: [[NUEVA_ESCENA|Nombre|Tipo]].\n"
+                "4. Si la nueva escena es peligrosa, incluye JSON de monstruos."
+            )
+            
+            if id_partida in chat_histories:
+                chat_histories[id_partida].append({'role': 'user', 'parts': [instr]})
+            
+            # Reutilizamos la lógica principal para que procese el tag [[NUEVA_ESCENA]] si la IA lo genera
+            run_gemini_request(id_partida, room)
+
+        except Exception as e:
+            APP_INSTANCE.logger.error(f"Error Post-Combate IA: {e}")
+
 def run_gemini_request(id_partida, room):
+<<<<<<< HEAD
     # *** ARREGLO FINAL: Usamos APP_INSTANCE para el contexto ***
     if APP_INSTANCE is None: 
         print("ERROR CRÍTICO: APP_INSTANCE no está definida en run_gemini_request.")
@@ -390,3 +600,61 @@ def handle_mostrar_command(id_partida, user_id, nombre_archivo, room):
         APP_INSTANCE.logger.error(f"Error al generar URL estática: {e}")
         emit("error", {"msg": f"No se pudo encontrar la imagen estática '{nombre_archivo}'."})
         return False
+=======
+    if APP_INSTANCE is None or id_partida not in chat_histories: return
+    with APP_INSTANCE.app_context():
+        try:
+            ctx = obtener_contexto_combate(id_partida)
+            instr = (f"\n[SISTEMA]: Contexto:\n{ctx}\n"
+                     "Si hay peligro, genera enemigos. AÑADE AL FINAL JSON con IDs y Coordenadas (0-14):\n"
+                     "```json\n{\"monstruos\": [{\"id\": 12, \"x\": 5, \"y\": 6}]}```\n")
+            
+            hist = list(chat_histories[id_partida])
+            hist.append({'role': 'user', 'parts': [instr]})
+
+            resp = gemini_model.generate_content(hist, safety_settings=dnd_safety_settings)
+            txt = resp.text
+            
+            # 1. Procesar JSON (Monstruos)
+            ini = txt.find("```json")
+            if ini != -1:
+                fin = txt.find("```", ini+7)
+                if fin != -1:
+                    j_str = txt[ini+7:fin].strip()
+                    try:
+                        d = json.loads(j_str)
+                        if "monstruos" in d:
+                            ids, xs, ys = [], [], []
+                            for m in d["monstruos"]:
+                                xs_int = int(m["x"])
+                                ys_int = int(m["y"])
+                                if xs_int == 7 and ys_int == 7: xs_int = 6
+                                ids.append(int(m["id"]))
+                                xs.append(xs_int)
+                                ys.append(ys_int)
+                            insertar_monstruos_db(id_partida, ids, xs, ys)
+                    except Exception: pass
+                    txt = txt[:ini].strip() + "\n" + txt[fin+3:].strip()
+
+            # 2. Procesar [[NUEVA_ESCENA]] (Generada por trigger_post_combat)
+            patron = r"\[\[NUEVA_ESCENA\|(.*?)\|(.*?)\]\]"
+            match = re.search(patron, txt)
+            if match:
+                n_escena = match.group(1).strip()
+                t_entorno = match.group(2).strip()
+                if t_entorno not in ENTORNOS_PERMITIDOS: t_entorno = "Ruina"
+                try:
+                    with pool.acquire() as conn:
+                        with conn.cursor() as cursor:
+                            cursor.callproc("pkg_partida.crear_encuentro", [id_partida, n_escena, t_entorno])
+                            conn.commit()
+                except: pass
+                # Limpiamos el tag del texto visible
+                txt = re.sub(patron, "", txt).strip()
+
+            chat_histories[id_partida].append({'role': 'model', 'parts': [txt]})
+            guardar_mensaje_ia_en_db(id_partida, txt)
+            socketio.emit("nuevo_evento_ia", {"descripcion": txt}, room=room)
+
+        except Exception as e: APP_INSTANCE.logger.error(f"Error IA: {e}")
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63

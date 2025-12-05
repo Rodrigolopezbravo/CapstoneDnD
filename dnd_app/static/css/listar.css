@@ -1,9 +1,9 @@
 :root {
   --color-primary: #8b0000;      
   --color-secondary: #c0a060;    
-  --color-accent: #000000;      
-  --color-dark: #4b3832;        
-  --color-light: #ffffff;   
+  --color-accent: #000000;       
+  --color-dark: #4b3832;         
+  --color-light: #ffffff;        
 }
 
 body {
@@ -15,8 +15,7 @@ body {
   color: var(--color-light) !important;
   perspective: 1px;
   transform-style: preserve-3d;
-  overflow-x: hidden;
-  overflow-y: scroll;
+  overflow: hidden;
   font-family: sans-serif;
 }
 
@@ -31,7 +30,7 @@ header {
   width: 100%;
   height: 80px;
   background-color: rgba(139, 0, 0, 1);
-  color: #000000 !important;
+  color: var(--color-light);
   display: flex;
   align-items: center;
   padding: 0 20px;
@@ -134,6 +133,8 @@ header.scrolled {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
+
+
 .section1, .section2 {
   width: 100%;
   min-height: 100vh;
@@ -218,23 +219,14 @@ header.scrolled {
 }
 
 .text {
-  position: absolute;
   top: 30%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  position: absolute;
   font-size: 5vw;
-  font-family: 'Cinzel Decorative', serif;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-align: center;
-  background: linear-gradient(180deg, #ffffff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 0 8px rgba(192,160,96,0.25);
-  opacity: 0;
-  animation: titleFade 1.5s ease forwards;
+  color: white;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3),
+  5px 5px 70px rgba(255, 255, 255, 0.5);
+  transform: scale(1,1.1) translate(-50%, 10%);
 }
 
 .content1,
@@ -244,71 +236,38 @@ header.scrolled {
   padding: 60px 20px;
 }
 
-.content2 .btn-primary {
-  background-color: #8b0000 ;
-  color: #fff ;
-}
-.content2 .btn-primary:hover {
-  background-color: #8b0000 ;
-}
 
-.content1 .btn-primary {
-  background-color: #c0a060 ;
-  color: #fff ;
-}
-
-.content1 .btn-primary:hover {
-  background-color: #c0a060 ;
-}
-
-.btn-volver {
-  background-color: #8b0000 !important;
-  color: #ffffff !important;
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-warning,
+.btn-danger,
+.btn-info {
+  background-color: #c0a060 !important;
   border: none !important;
+  color: #1b1b1b !important;
+  font-weight: 600;
+  border-radius: 8px !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-.btn-volver:hover,
-.btn-volver:focus,
-.btn-volver:active {
-  background-color: #8b0000 !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
+.btn:hover,
+.btn:focus {
+  background-color: #d8b770 !important;
+  color: #1b1b1b !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(192, 160, 96, 0.4);
 }
 
-
-.fx-slash::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -15px;
-  width: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #8b0000, #c0a060, #8b0000);
-  border-radius: 2px;
-  box-shadow: 0 0 12px rgba(192,160,96,0.4);
-  transform: translateX(-50%);
-  animation: slashAppear 1s ease forwards;
-  animation-delay: 0.6s;
+.btn-sm {
+  padding: 6px 12px !important;
+  font-size: 0.9rem !important;
 }
 
-@keyframes titleFade {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -40%) scale(0.95);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
+.btn:active {
+  background-color: #b8934d !important;
+  transform: translateY(0);
+  box-shadow: none;
 }
 
-@keyframes slashAppear {
-  0% {
-    width: 0;
-    opacity: 0;
-  }
-  100% {
-    width: 65%;
-    opacity: 1;
-  }
-}

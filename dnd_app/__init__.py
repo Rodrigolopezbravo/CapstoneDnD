@@ -8,6 +8,7 @@ import os
 
 jwt = JWTManager()
 pool = get_connection_pool()
+<<<<<<< HEAD
 
 # *** CORRECCIÓN: Inicialización de SocketIO (solo una vez) ***
 socketio = SocketIO(
@@ -16,6 +17,13 @@ socketio = SocketIO(
     # Puedes añadir manage_session=False si no usas sesiones de Flask
     # manage_session=False 
 )
+=======
+# Corrección en la inicialización de SocketIO (solo una instancia)
+socketio = SocketIO(
+    cors_allowed_origins=["http://127.0.0.1:5000", "http://localhost:5000"],
+    cookie=True
+) 
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
 
 def create_app():
     app = Flask(__name__)
@@ -31,15 +39,26 @@ def create_app():
 
     jwt.init_app(app)
     socketio.init_app(app)
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
     # Importar y registrar blueprints
     from .routes.auth import auth_bp
     from .routes.personajes import personajes_bp
     from .routes.partidas import partidas_bp
     from .routes.encuentros import encuentros_bp
+<<<<<<< HEAD
     
     # *** CORRECCIÓN IMPORTANTE ***
     # Importamos el Blueprint Y la función setup
+=======
+    from .routes.tablero import tablero_bp
+
+    # *** ¡AQUÍ ESTÁ LA CORRECCIÓN! ***
+    # 1. Importar la función setup además del blueprint
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
     from .routes.chat import chat_bp, setup_chat_module 
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
@@ -47,14 +66,23 @@ def create_app():
     app.register_blueprint(partidas_bp, url_prefix="/api/partidas")
     app.register_blueprint(encuentros_bp, url_prefix="/api/encuentros")
     app.register_blueprint(chat_bp, url_prefix="/api/chat")
+    app.register_blueprint(tablero_bp, url_prefix="/api/tablero")
 
+<<<<<<< HEAD
     # *** LLAMADA FINAL: Almacenar la instancia de la app ***
     # Esta línea asegura que APP_INSTANCE en chat.py se configure.
     setup_chat_module(app) 
+=======
+    # 2. Llamar a la función setup y pasarle la app
+    #    Esto asegura que APP_INSTANCE en chat.py no sea None.
+    setup_chat_module(app)
+    # *** FIN DE LA CORRECCIÓN ***
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
 
     # --- Páginas estáticas ---
     @app.route('/login')
     def login_page(): return render_template('login.html')
+<<<<<<< HEAD
     
     @app.route('/partida') # Esta ruta probablemente no la necesites si usas la de abajo
     def partida_page(): return render_template('partida.html') # Asumiendo que es una plantilla base
@@ -63,6 +91,15 @@ def create_app():
     def register_page(): return render_template('register.html')
     
     # Esta ruta redirige a la que maneja la lógica en partidas_bp
+=======
+    
+    @app.route('/partida')
+    def partida_page(): return render_template('partida.html')
+    
+    @app.route('/register')
+    def register_page(): return render_template('register.html')
+    
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
     @app.route('/partida/<int:id_partida>') 
     def redirigir_partida(id_partida): return redirect(f"/api/partidas/partida/{id_partida}")
 
@@ -86,6 +123,7 @@ def create_app():
             verify_jwt_in_request(optional=True, locations=["cookies"])
             user_id = get_jwt_identity()
             if user_id:
+<<<<<<< HEAD
                 # Usar la función obtener_usuario del módulo de chat para evitar duplicar código
                 # (Asegúrate de que la importación funcione)
                 try:
@@ -99,6 +137,19 @@ def create_app():
                             cursor.callproc("pkg_auth.obtener_usuario_por_id", [int(user_id), out_cursor])
                             row = out_cursor.getvalue().fetchone()
                             if row: user = {"id_usuario": row[0],"username": row[1],"email": row[2]}
+=======
+                with pool.acquire() as conn:
+                    with conn.cursor() as cursor:
+                        out_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
+                        cursor.callproc("pkg_auth.obtener_usuario_por_id", [int(user_id), out_cursor])
+                        row = out_cursor.getvalue().fetchone()
+                        if row:
+                            user = {
+                                "id_usuario": row[0],
+                                "username": row[1],
+                                "email": row[2]
+                            }
+>>>>>>> 9f554f145221fa60398f0190e0188e8564f02c63
         except Exception:
             user = None
         return dict(current_user=user)

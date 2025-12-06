@@ -12,10 +12,6 @@ import google.generativeai as genai
 # Referencia global
 APP_INSTANCE = None 
 
-# Referencia global a la instancia de la aplicación (INICIALMENTE NONE)
-# Se establecerá mediante setup_chat_module
-APP_INSTANCE = None 
-
 try:
     from dnd_app import walletcredentials 
     SECRETS_API_KEY = getattr(walletcredentials, 'GEMINI_API_KEY_LOCAL', None)
@@ -23,7 +19,6 @@ except ImportError:
     SECRETS_API_KEY = None
     print("ADVERTENCIA: No se pudo importar walletcredentials.")
 
-# Variables Globales
 ID_USUARIO_GEMINI = 101 
 NOMBRE_USUARIO_GEMINI = "DM Gema"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or SECRETS_API_KEY
@@ -52,6 +47,7 @@ Eres '{NOMBRE_USUARIO_GEMINI}', un Dungeon Master asistente.
 Tu rol es narrar la historia y describir escenarios.
 REGLAS: Entornos válidos: {', '.join(ENTORNOS_PERMITIDOS)}.
 Si narras un cambio de escena, usa código oculto: [[NUEVA_ESCENA|Nombre|Tipo]].
+IMPORTANTE: No generes una NUEVA_ESCENA si el grupo todavía está combatiendo.
 Responde en español.
 """
 
@@ -78,7 +74,6 @@ def obtener_usuario(user_id):
     return None
 
 def get_current_user_id_or_none():
-    app = APP_INSTANCE or current_app
     try:
         verify_jwt_in_request(optional=True, locations=["cookies"])
         return get_jwt_identity()
@@ -94,7 +89,7 @@ def guardar_mensaje_ia_en_db(id_partida, mensaje_ia):
     except Exception as e:
         if app: app.logger.error(f"Error DB msg IA: {e}")
 
-# --- HELPERS MONSTRUOS (SQL DIRECTO) ---
+# --- HELPERS MONSTRUOS ---
 
 def obtener_contexto_combate(id_partida):
     if APP_INSTANCE is None: return ""
@@ -117,7 +112,7 @@ def obtener_contexto_combate(id_partida):
                     f"- Monstruos Disponibles: {', '.join(lista_monstruos)}\n"
                 )
     except Exception as e:
-        print(f"⚠️ Error info monstruos: {e}")
+        print(f" Error info monstruos: {e}")
         return "Info: Grupo estándar."
     return info_texto
 
@@ -131,7 +126,6 @@ def insertar_monstruos_db(id_partida, lista_ids, lista_x, lista_y):
                 if not row or row[0] is None: return
                 id_encuentro = row[0]
 
-                # SQL INSERCIÓN INTELIGENTE (SIN COLUMNA ESTADO PARA EVITAR ERROR)
                 sql = """
                     INSERT INTO encuentro_monstruo (id_encuentro, id_monstruo, puntos_vida_actual, x, y)
                     SELECT :id_enc, m.id_monstruo, m.puntos_vida_maximo, :pos_x, :pos_y
@@ -143,7 +137,7 @@ def insertar_monstruos_db(id_partida, lista_ids, lista_x, lista_y):
                 for i in range(len(lista_ids)):
                     sx = max(0, min(14, lista_x[i]))
                     sy = max(0, min(14, lista_y[i]))
-                    if sx == 7 and sy == 7: sx = 6 # Anti-colisión
+                    if sx == 7 and sy == 7: sx = 6 
                     
                     datos.append({
                         "id_enc": id_encuentro, "id_mon": lista_ids[i],
@@ -152,9 +146,9 @@ def insertar_monstruos_db(id_partida, lista_ids, lista_x, lista_y):
                 
                 cursor.executemany(sql, datos)
                 conn.commit()
-                print(f"✅ {len(lista_ids)} Monstruos insertados.")
+                print(f" {len(lista_ids)} Monstruos insertados.")
     except Exception as e:
-        print(f"❌ Error insertando monstruos: {e}")
+        print(f" Error insertando monstruos: {e}")
 
 # --- RUTAS HTTP ---
 
@@ -182,17 +176,35 @@ def traer_historial_eventos(id_partida):
     try:
         with pool.acquire() as conn:
             with conn.cursor() as cursor:
-                sql = """
-                    SELECT e.descripcion, e.fecha_evento 
-                    FROM evento e JOIN encuentro en ON e.id_encuentro = en.id_encuentro
-                    WHERE en.id_partida = :1 ORDER BY e.fecha_evento ASC
-                """
-                cursor.execute(sql, [id_partida])
+                nombres_pj = {}
+                cursor.execute("""
+                    SELECT p.id_personaje, p.nombre 
+                    FROM participacion pa
+                    JOIN personaje p ON pa.id_personaje = p.id_personaje
+                    WHERE pa.id_partida = :1
+                """, [id_partida])
+                for r in cursor:
+                    nombres_pj[str(r[0])] = r[1]
+
+                out_cursor = cursor.var(oracledb.DB_TYPE_CURSOR)
+                cursor.callproc("pkg_partida.traer_eventos", [id_partida, out_cursor])
+                
                 def read_data(value): return value.read() if hasattr(value, 'read') else value
-                for row in cursor:
-                    eventos.append({"descripcion": read_data(row[0]), "fecha": row[1].isoformat() if row[1] else None})
+                
+                for row in out_cursor.getvalue():
+                    raw_desc = read_data(row[3])
+                    fecha = row[4]
+                    clean_desc = re.sub(
+                        r"personaje ID (\d+)", 
+                        lambda m: nombres_pj.get(m.group(1), m.group(0)), 
+                        raw_desc
+                    )
+                    eventos.append({"descripcion": clean_desc, "fecha": fecha.isoformat() if fecha else None})
+                    
         return jsonify(eventos), 200
-    except Exception: return jsonify([]), 200
+    except Exception as e: 
+        print(f"Error eventos: {e}")
+        return jsonify([]), 200
 
 # --- SOCKET IO ---
 
@@ -211,11 +223,18 @@ def handle_join_partida(data):
         id_partida = int(data.get("id_partida"))
         room = f"partida_{id_partida}"
         join_room(room)
-        if id_partida not in chat_histories: chat_histories[id_partida] = [{'role': 'user', 'parts': [SYSTEM_PROMPT]}]
+        if id_partida not in chat_histories: 
+            chat_histories[id_partida] = [{'role': 'user', 'parts': [SYSTEM_PROMPT]}]
+        
         usuario = obtener_usuario(user_id)
         username = usuario["username"] if usuario else f"user_{user_id}"
+        
         emit("system", {"msg": f"{username} entró."}, room=room, skip_sid=request.sid)
         emit("joined", {"ok": True, "room": room})
+        
+        # Avisar para recargar lista de jugadores
+        emit("actualizar_jugadores", {"msg": "Nuevo jugador"}, room=room)
+
     except Exception as e: emit("error", {"msg": str(e)})
 
 @socketio.on("leave_partida")
@@ -255,7 +274,7 @@ def handle_send_message(data):
 # --- LOGICA IA ---
 
 def handle_iniciar_aventura_command(id_partida, user_id, room):
-    emit("nuevo_evento_ia", {"descripcion": "Iniciando aventura... ⏳"}, room=room)
+    emit("nuevo_evento_ia", {"descripcion": "Iniciando aventura... "}, room=room)
     u = obtener_usuario(user_id)
     username = u["username"] if u else "Aventurero"
     socketio.start_background_task(run_inicio_aventura_ia, id_partida, room, username)
@@ -277,12 +296,9 @@ def run_inicio_aventura_ia(id_partida, room, username):
             
             if '|' in texto_limpio:
                 partes = texto_limpio.split('|')
-                nom = partes[0].strip()
-                ent = partes[1].strip()
+                nom = partes[0].strip(); ent = partes[1].strip()
             else:
-                nom = "El Comienzo del Viaje"
-                ent = "Pueblo"
-
+                nom = "El Comienzo del Viaje"; ent = "Pueblo"
             if ent not in ENTORNOS_PERMITIDOS: ent = "Pueblo"
 
             with pool.acquire() as conn:
@@ -304,7 +320,7 @@ def run_inicio_aventura_ia(id_partida, room, username):
 def handle_gemini_command(id_partida, user_id, mensaje, room):
     prompt = mensaje[len("@evento"):].strip()
     if id_partida in chat_histories: chat_histories[id_partida].append({'role': 'user', 'parts': [f"User {user_id}: {prompt}"]})
-    emit("nuevo_evento_ia", {"descripcion": "... 💭"}, room=room)
+    emit("nuevo_evento_ia", {"descripcion": "... "}, room=room)
     socketio.start_background_task(run_gemini_request, id_partida, room)
     return True
 
@@ -326,12 +342,7 @@ def handle_nueva_escena_command(id_partida, user_id, params, room):
     socketio.start_background_task(run_gemini_request, id_partida, room)
     return True
 
-# --- FUNCIÓN QUE CONECTA CON PARTIDAS.PY (ESTO FALTABA) ---
 def trigger_post_combat(id_partida, room):
-    """
-    Llamada por partidas.py cuando se detecta 'COMBATE_FINALIZADO'.
-    Instruye a la IA a cerrar la escena y abrir una nueva.
-    """
     if APP_INSTANCE is None or not gemini_model: return
     with APP_INSTANCE.app_context():
         try:
@@ -346,7 +357,6 @@ def trigger_post_combat(id_partida, room):
             if id_partida in chat_histories:
                 chat_histories[id_partida].append({'role': 'user', 'parts': [instr]})
             
-            # Reutilizamos la lógica principal para que procese el tag [[NUEVA_ESCENA]] si la IA lo genera
             run_gemini_request(id_partida, room)
 
         except Exception as e:
@@ -357,9 +367,11 @@ def run_gemini_request(id_partida, room):
     with APP_INSTANCE.app_context():
         try:
             ctx = obtener_contexto_combate(id_partida)
-            instr = (f"\n[SISTEMA]: Contexto:\n{ctx}\n"
-                     "Si hay peligro, genera enemigos. AÑADE AL FINAL JSON con IDs y Coordenadas (0-14):\n"
-                     "```json\n{\"monstruos\": [{\"id\": 12, \"x\": 5, \"y\": 6}]}```\n")
+            instr = (
+                f"\n[SISTEMA]: Contexto:\n{ctx}\n"
+                "Si hay peligro, genera enemigos. AÑADE AL FINAL JSON con IDs y Coordenadas (0-14):\n"
+                "```json\n{\"monstruos\": [{\"id\": 12, \"x\": 5, \"y\": 6}]}```\n"
+            )
             
             hist = list(chat_histories[id_partida])
             hist.append({'role': 'user', 'parts': [instr]})
@@ -384,24 +396,57 @@ def run_gemini_request(id_partida, room):
                                 ids.append(int(m["id"]))
                                 xs.append(xs_int)
                                 ys.append(ys_int)
+                            
                             insertar_monstruos_db(id_partida, ids, xs, ys)
+                            
+                            # Reiniciar Turnos y Parchar DM
+                            try:
+                                with pool.acquire() as conn:
+                                    with conn.cursor() as cursor:
+                                        cursor.callproc("pkg_turnos.iniciar_turnos", [id_partida])
+                                        cursor.execute("""
+                                            UPDATE turno_partida 
+                                            SET acciones_totales = (SELECT COUNT(*) FROM participacion WHERE id_partida = :1 AND rol != 'dm'),
+                                                acciones_restantes = (SELECT COUNT(*) FROM participacion WHERE id_partida = :1 AND rol != 'dm')
+                                            WHERE id_partida = :1
+                                        """, [id_partida])
+                                        conn.commit()
+                                print(" Turnos reiniciados tras aparición de monstruos.")
+                            except Exception as e_turnos:
+                                print(f" Alerta turno automático: {e_turnos}")
+
                     except Exception: pass
                     txt = txt[:ini].strip() + "\n" + txt[fin+3:].strip()
 
-            # 2. Procesar [[NUEVA_ESCENA]] (Generada por trigger_post_combat)
+            # 2. Procesar [[NUEVA_ESCENA]] (Con Candado)
             patron = r"\[\[NUEVA_ESCENA\|(.*?)\|(.*?)\]\]"
             match = re.search(patron, txt)
             if match:
-                n_escena = match.group(1).strip()
-                t_entorno = match.group(2).strip()
-                if t_entorno not in ENTORNOS_PERMITIDOS: t_entorno = "Ruina"
+                combat_active = False
                 try:
                     with pool.acquire() as conn:
                         with conn.cursor() as cursor:
-                            cursor.callproc("pkg_partida.crear_encuentro", [id_partida, n_escena, t_entorno])
-                            conn.commit()
+                            cursor.execute("""
+                                SELECT count(*) FROM encuentro_monstruo em 
+                                JOIN encuentro e ON e.id_encuentro=em.id_encuentro
+                                WHERE e.id_partida=:1 AND em.puntos_vida_actual > 0
+                            """, [id_partida])
+                            combat_active = cursor.fetchone()[0] > 0
                 except: pass
-                # Limpiamos el tag del texto visible
+
+                if not combat_active:
+                    n_escena = match.group(1).strip()
+                    t_entorno = match.group(2).strip()
+                    if t_entorno not in ENTORNOS_PERMITIDOS: t_entorno = "Ruina"
+                    try:
+                        with pool.acquire() as conn:
+                            with conn.cursor() as cursor:
+                                cursor.callproc("pkg_partida.crear_encuentro", [id_partida, n_escena, t_entorno])
+                                conn.commit()
+                    except: pass
+                else:
+                    print(f"Bloqueado intento de IA de cambiar escena durante combate en partida {id_partida}")
+
                 txt = re.sub(patron, "", txt).strip()
 
             chat_histories[id_partida].append({'role': 'model', 'parts': [txt]})

@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, request
 from flask_jwt_extended import JWTManager, verify_jwt_in_request, get_jwt_identity
 from datetime import timedelta
 from dnd_app.oracle_db import get_connection_pool
-from flask_socketio import SocketIO # Importa SocketIO
+from flask_socketio import SocketIO
 import oracledb
 import os
 
@@ -21,11 +21,10 @@ def create_app():
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "modifica_esta_clave")
     app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
     app.config["JWT_ACCESS_COOKIE_PATH"] = "/"
-    app.config["JWT_COOKIE_SECURE"] = False # En producción => True
-    app.config["JWT_COOKIE_CSRF_PROTECT"] = False # Desarrollo
+    app.config["JWT_COOKIE_SECURE"] = False  # En producción => True
+    app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Desarrollo
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
-    # Eliminadas configuraciones de SQLAlchemy
-
+    
     jwt.init_app(app)
     socketio.init_app(app)
     
@@ -35,9 +34,6 @@ def create_app():
     from .routes.partidas import partidas_bp
     from .routes.encuentros import encuentros_bp
     from .routes.tablero import tablero_bp
-
-    # *** ¡AQUÍ ESTÁ LA CORRECCIÓN! ***
-    # 1. Importar la función setup además del blueprint
     from .routes.chat import chat_bp, setup_chat_module 
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
@@ -47,10 +43,7 @@ def create_app():
     app.register_blueprint(chat_bp, url_prefix="/api/chat")
     app.register_blueprint(tablero_bp, url_prefix="/api/tablero")
 
-    # 2. Llamar a la función setup y pasarle la app
-    #    Esto asegura que APP_INSTANCE en chat.py no sea None.
     setup_chat_module(app)
-    # *** FIN DE LA CORRECCIÓN ***
 
     # --- Páginas estáticas ---
     @app.route('/login')
